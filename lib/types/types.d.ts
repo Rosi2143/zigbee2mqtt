@@ -1,33 +1,26 @@
-/* eslint-disable camelcase */
-import type {
-    Device as ZHDevice,
-    Group as ZHGroup,
-    Endpoint as ZHEndpoint,
-} from 'zigbee-herdsman/dist/controller/model';
-
-import type {
-    NetworkParameters as ZHNetworkParameters,
-    CoordinatorVersion as ZHCoordinatorVersion,
-    LQI as ZHLQI,
-    RoutingTable as ZHRoutingTable,
-    RoutingTableEntry as ZHRoutingTableEntry,
-} from 'zigbee-herdsman/dist/adapter/tstype';
-
-import type {
-    Cluster as ZHCluster,
-} from 'zigbee-herdsman/dist/zcl/tstype';
-
-import type * as ZHEvents from 'zigbee-herdsman/dist/controller/events';
-
 import type TypeEventBus from 'lib/eventBus';
+import type TypeExtension from 'lib/extension/extension';
+import type TypeDevice from 'lib/model/device';
+import type TypeGroup from 'lib/model/group';
 import type TypeMQTT from 'lib/mqtt';
 import type TypeState from 'lib/state';
 import type TypeZigbee from 'lib/zigbee';
-import type TypeDevice from 'lib/model/device';
-import type TypeGroup from 'lib/model/group';
-import type TypeExtension from 'lib/extension/extension';
+import type {QoS} from 'mqtt-packet';
+import type * as zhc from 'zigbee-herdsman-converters';
+import type {
+    CoordinatorVersion as ZHCoordinatorVersion,
+    LQI as ZHLQI,
+    NetworkParameters as ZHNetworkParameters,
+    RoutingTable as ZHRoutingTable,
+    RoutingTableEntry as ZHRoutingTableEntry,
+} from 'zigbee-herdsman/dist/adapter/tstype';
+import type * as ZHEvents from 'zigbee-herdsman/dist/controller/events';
+import type {Device as ZHDevice, Endpoint as ZHEndpoint, Group as ZHGroup} from 'zigbee-herdsman/dist/controller/model';
+import type {Cluster as ZHCluster, FrameControl as ZHFrameControl} from 'zigbee-herdsman/dist/zspec/zcl/definition/tstype';
 
-import type mqtt from 'mqtt';
+import {LogLevel} from 'lib/util/settings';
+
+type OptionalProps<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 declare global {
     // Define some class types as global
@@ -40,14 +33,26 @@ declare global {
     type Extension = TypeExtension;
 
     // Types
-    interface MQTTResponse {data: KeyValue, status: 'error' | 'ok', error?: string, transaction?: string}
-    interface MQTTOptions {qos?: mqtt.QoS, retain?: boolean, properties?: {messageExpiryInterval: number}}
+    type ExternalDefinition = zhc.Definition & {homeassistant: unknown};
+    interface MQTTResponse {
+        data: KeyValue;
+        status: 'error' | 'ok';
+        error?: string;
+        transaction?: string;
+    }
+    interface MQTTOptions {
+        qos?: QoS;
+        retain?: boolean;
+        properties?: {messageExpiryInterval: number};
+    }
+    type Scene = {id: number; name: string};
     type StateChangeReason = 'publishDebounce' | 'groupOptimistic' | 'lastSeenChanged' | 'publishCached';
-    type PublishEntityState = (entity: Device | Group, payload: KeyValue,
-        stateChangeReason?: StateChangeReason) => Promise<void>;
-    type RecursivePartial<T> = {[P in keyof T]?: RecursivePartial<T[P]>;};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    interface KeyValue {[s: string]: any}
+    type PublishEntityState = (entity: Device | Group, payload: KeyValue, stateChangeReason?: StateChangeReason) => Promise<void>;
+    type RecursivePartial<T> = {[P in keyof T]?: RecursivePartial<T[P]>};
+    interface KeyValue {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [s: string]: any;
+    }
 
     // zigbee-herdsman
     namespace zh {
@@ -66,94 +71,33 @@ declare global {
         }
     }
 
-    // zigbee-herdsman-converters
-    namespace zhc {
-        interface Logger {
-            info: (message: string) => void;
-            warn: (message: string) => void;
-            error: (message: string) => void;
-            debug: (message: string) => void;
-        }
-
-        interface ToZigbeeConverterGetMeta {message?: KeyValue, mapped?: Definition | Definition[]}
-
-        interface ToZigbeeConverterResult {state: KeyValue,
-            membersState: {[s: string]: KeyValue}, readAfterWriteTime?: number}
-
-        interface ToZigbeeConverter {
-            key: string[],
-            convertGet?: (entity: zh.Endpoint | zh.Group, key: string, meta: ToZigbeeConverterGetMeta) => Promise<void>
-            convertSet?: (entity: zh.Endpoint | zh.Group, key: string, value: KeyValue | string | number,
-                meta: {state: KeyValue}) => Promise<ToZigbeeConverterResult>
-        }
-
-        interface FromZigbeeConverter {
-            cluster: string,
-            type: string[] | string,
-            convert: (model: Definition, msg: KeyValue, publish: (payload: KeyValue) => void, options: KeyValue,
-                meta: {state: KeyValue, logger: Logger, device: zh.Device}) => Promise<KeyValue>,
-        }
-
-        interface DefinitionExposeFeature {name: string, endpoint?: string,
-            property: string, value_max?: number, value_min?: number, unit?: string,
-            value_off?: string, value_on?: string, value_step?: number, values: string[], access: number}
-
-        interface DefinitionExpose {
-            type: string, name?: string, features?: DefinitionExposeFeature[],
-            endpoint?: string, values?: string[], value_off?: string, value_on?: string, value_step?: number,
-            access: number, property: string, unit?: string,
-            value_min?: number, value_max?: number}
-
-        interface OtaUpdateAvailableResult {available: boolean, currentFileVersion: number, otaFileVersion: number}
-
-        interface Definition {
-            model: string,
-            zigbeeModel: string[],
-            endpoint?: (device: zh.Device) => {[s: string]: number}
-            toZigbee: ToZigbeeConverter[]
-            fromZigbee: FromZigbeeConverter[]
-            icon?: string
-            description: string
-            options: zhc.DefinitionExpose[],
-            vendor: string
-            exposes: DefinitionExpose[] | ((device: zh.Device, options: KeyValue) => DefinitionExpose[])
-            configure?: (device: zh.Device, coordinatorEndpoint: zh.Endpoint, logger: Logger,
-                options?: DeviceOptions) => Promise<void>;
-            onEvent?: (type: string, data: KeyValue, device: zh.Device,
-                settings: KeyValue, state: KeyValue) => Promise<void>;
-            ota?: {
-                isUpdateAvailable: (device: zh.Device, logger: Logger, data?: KeyValue)
-                    => Promise<OtaUpdateAvailableResult>;
-                updateToLatest: (device: zh.Device, logger: Logger,
-                    onProgress: (progress: number, remaining: number) => void) => Promise<number>;
-            }
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        type ExternalDefinition = Definition & {homeassistant: any};
-    }
-
     namespace eventdata {
-        type EntityRenamed = { entity: Device | Group, homeAssisantRename: boolean, from: string, to: string };
-        type DeviceRemoved = { ieeeAddr: string, name: string };
-        type MQTTMessage = { topic: string, message: string };
-        type MQTTMessagePublished = { topic: string, payload: string, options: {retain: boolean, qos: number} };
+        type EntityRenamed = {entity: Device | Group; homeAssisantRename: boolean; from: string; to: string};
+        type EntityRemoved = {id: number | string; name: string; type: 'device' | 'group'};
+        type MQTTMessage = {topic: string; message: string};
+        type MQTTMessagePublished = {topic: string; payload: string; options: {retain: boolean; qos: number}};
         type StateChange = {
-            entity: Device | Group, from: KeyValue, to: KeyValue, reason: string | null, update: KeyValue };
+            entity: Device | Group;
+            from: KeyValue;
+            to: KeyValue;
+            reason?: string;
+            update: KeyValue;
+        };
         type PermitJoinChanged = ZHEvents.PermitJoinChangedPayload;
-        type LastSeenChanged = { device: Device,
-            reason: 'deviceAnnounce' | 'networkAddress' | 'deviceJoined' | 'messageEmitted' | 'messageNonEmitted'; };
-        type DeviceNetworkAddressChanged = { device: Device };
-        type DeviceAnnounce = { device: Device };
-        type DeviceInterview = { device: Device, status: 'started' | 'successful' | 'failed' };
-        type DeviceJoined = { device: Device };
-        type EntityOptionsChanged = { entity: Device | Group, from: KeyValue, to: KeyValue };
-        type Reconfigure = { device: Device };
-        type DeviceLeave = { ieeeAddr: string, name: string };
-        type GroupMembersChanged = {group: Group, action: 'remove' | 'add' | 'remove_all',
-            endpoint: zh.Endpoint, skipDisableReporting: boolean };
-        type PublishEntityState = {entity: Group | Device, message: KeyValue, stateChangeReason: StateChangeReason,
-                payload: KeyValue};
+        type LastSeenChanged = {
+            device: Device;
+            reason: 'deviceAnnounce' | 'networkAddress' | 'deviceJoined' | 'messageEmitted' | 'messageNonEmitted';
+        };
+        type DeviceNetworkAddressChanged = {device: Device};
+        type DeviceAnnounce = {device: Device};
+        type DeviceInterview = {device: Device; status: 'started' | 'successful' | 'failed'};
+        type DeviceJoined = {device: Device};
+        type EntityOptionsChanged = {entity: Device | Group; from: KeyValue; to: KeyValue};
+        type ExposesChanged = {device: Device};
+        type Reconfigure = {device: Device};
+        type DeviceLeave = {ieeeAddr: string; name: string};
+        type GroupMembersChanged = {group: Group; action: 'remove' | 'add' | 'remove_all'; endpoint: zh.Endpoint; skipDisableReporting: boolean};
+        type PublishEntityState = {entity: Group | Device; message: KeyValue; stateChangeReason?: StateChangeReason; payload: KeyValue};
         type DeviceMessage = {
             type: ZHEvents.MessagePayloadType;
             device: Device;
@@ -162,154 +106,159 @@ declare global {
             groupID: number;
             cluster: string | number;
             data: KeyValue | Array<string | number>;
-            meta: {zclTransactionSequenceNumber?: number;};
+            meta: {zclTransactionSequenceNumber?: number; manufacturerCode?: number; frameControl?: ZHFrameControl};
         };
+        type ScenesChanged = {entity: Device | Group};
     }
 
     // Settings
-    // eslint-disable camelcase
     interface Settings {
         homeassistant?: {
-            discovery_topic: string,
-            status_topic: string,
-            legacy_entity_attributes: boolean,
-            legacy_triggers: boolean,
-        },
-        permit_join?: boolean,
+            discovery_topic: string;
+            status_topic: string;
+            legacy_entity_attributes: boolean;
+            legacy_triggers: boolean;
+        };
+        permit_join: boolean;
         availability?: {
-            active: {timeout: number},
-            passive: {timeout: number}
-        },
-        external_converters: string[],
+            active: {timeout: number};
+            passive: {timeout: number};
+        };
+        external_converters: string[];
         mqtt: {
-            base_topic: string,
-            include_device_information: boolean,
-            force_disable_retain: boolean
-            version?: number,
-            user?: string,
-            password?: string,
-            server: string,
-            ca?: string,
-            keepalive?: number,
-            key?: string,
-            cert?: string,
-            client_id?: string,
-            reject_unauthorized?: boolean,
-        },
+            base_topic: string;
+            include_device_information: boolean;
+            force_disable_retain: boolean;
+            version?: 3 | 4 | 5;
+            user?: string;
+            password?: string;
+            server: string;
+            ca?: string;
+            keepalive?: number;
+            key?: string;
+            cert?: string;
+            client_id?: string;
+            reject_unauthorized?: boolean;
+        };
         serial: {
-            disable_led: boolean,
-            port?: string,
-            adapter?: 'deconz' | 'zstack' | 'ezsp' | 'zigate',
-            baudrate?: number,
-            rtscts?: boolean,
-        },
-        passlist: string[],
-        blocklist: string[],
+            disable_led: boolean;
+            port?: string;
+            adapter?: 'deconz' | 'zstack' | 'ezsp' | 'zigate' | 'ember';
+            baudrate?: number;
+            rtscts?: boolean;
+        };
+        passlist: string[];
+        blocklist: string[];
         map_options: {
             graphviz: {
                 colors: {
                     fill: {
-                        enddevice: string,
-                        coordinator: string,
-                        router: string,
-                    },
+                        enddevice: string;
+                        coordinator: string;
+                        router: string;
+                    };
                     font: {
-                        coordinator: string,
-                        router: string,
-                        enddevice: string,
-                    },
+                        coordinator: string;
+                        router: string;
+                        enddevice: string;
+                    };
                     line: {
-                        active: string,
-                        inactive: string,
-                    },
-                },
-            },
-        },
+                        active: string;
+                        inactive: string;
+                    };
+                };
+            };
+        };
         ota: {
-            update_check_interval: number,
-            disable_automatic_update_check: boolean,
-            zigbee_ota_override_index_location?: string,
-            ikea_ota_use_test_url?: boolean,
-        },
+            update_check_interval: number;
+            disable_automatic_update_check: boolean;
+            zigbee_ota_override_index_location?: string;
+            ikea_ota_use_test_url?: boolean;
+        };
         frontend?: {
-            auth_token?: string,
-            host?: string,
-            port?: number,
-            url?: string,
-            ssl_cert?: string,
-            ssl_key?: string,
-        },
-        devices?: {[s: string]: DeviceOptions},
-        groups?: {[s: string]: GroupOptions},
-        device_options: KeyValue,
+            auth_token?: string;
+            host?: string;
+            port: number;
+            url?: string;
+            ssl_cert?: string;
+            ssl_key?: string;
+        };
+        devices: {[s: string]: DeviceOptions};
+        groups: {[s: string]: OptionalProps<Omit<GroupOptions, 'ID'>, 'devices'>};
+        device_options: KeyValue;
         advanced: {
-            legacy_api: boolean,
-            legacy_availability_payload: boolean,
-            log_rotation: boolean,
-            log_symlink_current: boolean,
-            log_output: ('console' | 'file' | 'syslog')[],
-            log_directory: string,
-            log_file: string,
-            log_level: 'debug' | 'info' | 'error' | 'warn',
-            log_syslog: KeyValue,
-            pan_id: number | 'GENERATE',
-            ext_pan_id: number[],
-            channel: number,
-            adapter_concurrent: number | null,
-            adapter_delay: number | null,
-            cache_state: boolean,
-            cache_state_persistent: boolean,
-            cache_state_send_on_startup: boolean,
-            last_seen: 'disable' | 'ISO_8601' | 'ISO_8601_local' | 'epoch',
-            elapsed: boolean,
-            network_key: number[] | 'GENERATE',
-            timestamp_format: string,
-            output: 'json' | 'attribute' | 'attribute_and_json',
-            transmit_power?: number,
+            legacy_api: boolean;
+            legacy_availability_payload: boolean;
+            log_rotation: boolean;
+            log_symlink_current: boolean;
+            log_output: ('console' | 'file' | 'syslog')[];
+            log_directory: string;
+            log_file: string;
+            log_level: LogLevel;
+            log_namespaced_levels: Record<string, LogLevel>;
+            log_syslog: KeyValue;
+            log_debug_to_mqtt_frontend: boolean;
+            log_debug_namespace_ignore: string;
+            pan_id: number | 'GENERATE';
+            ext_pan_id: number[] | 'GENERATE';
+            channel: number;
+            adapter_concurrent?: number;
+            adapter_delay?: number;
+            cache_state: boolean;
+            cache_state_persistent: boolean;
+            cache_state_send_on_startup: boolean;
+            last_seen: 'disable' | 'ISO_8601' | 'ISO_8601_local' | 'epoch';
+            elapsed: boolean;
+            network_key: number[] | 'GENERATE';
+            timestamp_format: string;
+            output: 'json' | 'attribute' | 'attribute_and_json';
+            transmit_power?: number;
             // Everything below is deprecated
-            availability_timeout?: number,
-            availability_blocklist?: string[],
-            availability_passlist?: string[],
-            availability_blacklist?: string[],
-            availability_whitelist?: string[],
-            soft_reset_timeout: number,
-            report: boolean,
-        },
+            availability_timeout?: number;
+            availability_blocklist: string[];
+            availability_passlist: string[];
+            availability_blacklist: string[];
+            availability_whitelist: string[];
+            soft_reset_timeout: number;
+            report: boolean;
+        };
     }
 
     interface DeviceOptions {
-        ID?: string,
-        disabled?: boolean,
-        retention?: number,
-        availability?: boolean | {timeout: number},
-        optimistic?: boolean,
-        retrieve_state?: boolean,
-        debounce?: number,
-        debounce_ignore?: string[],
-        filtered_attributes?: string[],
-        filtered_cache?: string[],
-        filtered_optimistic?: string[],
-        icon?: string,
-        homeassistant?: KeyValue,
-        legacy?: boolean,
-        friendly_name: string,
-        description?: string,
-        qos?: 0 | 1 | 2,
+        disabled?: boolean;
+        retention?: number;
+        availability?: boolean | {timeout: number};
+        optimistic?: boolean;
+        retrieve_state?: boolean;
+        debounce?: number;
+        debounce_ignore?: string[];
+        filtered_attributes?: string[];
+        filtered_cache?: string[];
+        filtered_optimistic?: string[];
+        icon?: string;
+        homeassistant?: KeyValue;
+        legacy?: boolean;
+        friendly_name: string;
+        description?: string;
+        qos?: 0 | 1 | 2;
+    }
+
+    interface DeviceOptionsWithId extends DeviceOptions {
+        ID: string;
     }
 
     interface GroupOptions {
-        devices?: string[],
-        ID?: number,
-        optimistic?: boolean,
-        off_state?: 'all_members_off' | 'last_member_state'
-        filtered_attributes?: string[],
-        filtered_cache?: string[],
-        filtered_optimistic?: string[],
-        retrieve_state?: boolean,
-        homeassistant?: KeyValue,
-        friendly_name: string,
-        description?: string,
-        qos?: 0 | 1 | 2,
+        devices: string[];
+        ID: number;
+        optimistic?: boolean;
+        off_state?: 'all_members_off' | 'last_member_state';
+        filtered_attributes?: string[];
+        filtered_cache?: string[];
+        filtered_optimistic?: string[];
+        retrieve_state?: boolean;
+        homeassistant?: KeyValue;
+        friendly_name: string;
+        description?: string;
+        qos?: 0 | 1 | 2;
     }
 }
-

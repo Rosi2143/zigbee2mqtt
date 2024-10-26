@@ -1,7 +1,8 @@
 /* istanbul ignore file */
+
+import logger from '../../util/logger';
 // DEPRECATED
 import * as settings from '../../util/settings';
-import logger from '../../util/logger';
 import utils from '../../util/utils';
 import Extension from '../extension';
 
@@ -9,7 +10,7 @@ import Extension from '../extension';
  * This extensions soft resets the ZNP after a certain timeout.
  */
 export default class SoftReset extends Extension {
-    private timer: NodeJS.Timer = null;
+    private timer?: NodeJS.Timeout;
     private timeout = utils.seconds(settings.get().advanced.soft_reset_timeout);
 
     override async start(): Promise<void> {
@@ -23,10 +24,8 @@ export default class SoftReset extends Extension {
     }
 
     private clearTimer(): void {
-        if (this.timer) {
-            clearTimeout(this.timer);
-            this.timer = null;
-        }
+        clearTimeout(this.timer);
+        this.timer = undefined;
     }
 
     private resetTimer(): void {
@@ -39,21 +38,21 @@ export default class SoftReset extends Extension {
     }
 
     private async handleTimeout(): Promise<void> {
-        logger.warn('Soft reset timeout triggered');
+        logger.warning('Soft reset timeout triggered');
 
         try {
             await this.zigbee.reset('soft');
-            logger.warn('Soft resetted ZNP due to timeout');
+            logger.warning('Soft reset ZNP due to timeout');
         } catch (error) {
-            logger.warn('Soft reset failed, trying stop/start');
+            logger.warning(`Soft reset failed, trying stop/start (${(error as Error).message})`);
 
             await this.zigbee.stop();
-            logger.warn('Zigbee stopped');
+            logger.warning('Zigbee stopped');
 
             try {
                 await this.zigbee.start();
             } catch (error) {
-                logger.error('Failed to restart!');
+                logger.error(`Failed to restart! (${(error as Error).message})`);
             }
         }
 

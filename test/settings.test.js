@@ -19,8 +19,8 @@ const minimalConfig = {
 };
 
 describe('Settings', () => {
-    const write = (file, json, reread=true) => {
-        fs.writeFileSync(file, yaml.dump(json))
+    const write = (file, json, reread = true) => {
+        fs.writeFileSync(file, yaml.dump(json));
         if (reread) {
             settings.reRead();
         }
@@ -28,14 +28,14 @@ describe('Settings', () => {
     const read = (file) => yaml.load(fs.readFileSync(file, 'utf8'));
     const remove = (file) => {
         if (fs.existsSync(file)) fs.unlinkSync(file);
-    }
+    };
     const clearEnvironmentVariables = () => {
         Object.keys(process.env).forEach((key) => {
-            if(key.indexOf('ZIGBEE2MQTT_CONFIG_') >= 0) {
+            if (key.indexOf('ZIGBEE2MQTT_CONFIG_') >= 0) {
                 delete process.env[key];
             }
         });
-    }
+    };
 
     beforeEach(() => {
         remove(configurationFile);
@@ -69,7 +69,8 @@ describe('Settings', () => {
         process.env['ZIGBEE2MQTT_CONFIG_ADVANCED_SOFT_RESET_TIMEOUT'] = 1;
         process.env['ZIGBEE2MQTT_CONFIG_ADVANCED_OUTPUT'] = 'attribute_and_json';
         process.env['ZIGBEE2MQTT_CONFIG_ADVANCED_LOG_OUTPUT'] = '["console"]';
-        process.env['ZIGBEE2MQTT_CONFIG_MAP_OPTIONS_GRAPHVIZ_COLORS_FILL'] = '{"enddevice": "#ff0000", "coordinator": "#00ff00", "router": "#0000ff"}';
+        process.env['ZIGBEE2MQTT_CONFIG_MAP_OPTIONS_GRAPHVIZ_COLORS_FILL'] =
+            '{"enddevice": "#ff0000", "coordinator": "#00ff00", "router": "#0000ff"}';
         process.env['ZIGBEE2MQTT_CONFIG_MQTT_BASE_TOPIC'] = 'testtopic';
         process.env['ZIGBEE2MQTT_CONFIG_MQTT_SERVER'] = 'testserver';
         process.env['ZIGBEE2MQTT_CONFIG_ADVANCED_NETWORK_KEY'] = 'GENERATE';
@@ -97,7 +98,7 @@ describe('Settings', () => {
         expected.groups = {};
         expected.serial.disable_led = true;
         expected.advanced.soft_reset_timeout = 1;
-        expected.advanced.log_output = ["console"];
+        expected.advanced.log_output = ['console'];
         expected.advanced.output = 'attribute_and_json';
         expected.map_options.graphviz.colors.fill = {enddevice: '#ff0000', coordinator: '#00ff00', router: '#0000ff'};
         expected.mqtt.base_topic = 'testtopic';
@@ -153,7 +154,7 @@ describe('Settings', () => {
 
         const device = settings.getDevice('0x12345678');
         const expected = {
-            ID: "0x12345678",
+            ID: '0x12345678',
             friendly_name: '0x12345678',
             retain: false,
         };
@@ -175,14 +176,14 @@ describe('Settings', () => {
                 password: '!secret password',
             },
             advanced: {
-                network_key: '!secret network_key'
-            }
+                network_key: '!secret network_key',
+            },
         };
 
         const contentSecret = {
             username: 'mysecretusername',
             password: 'mysecretpassword',
-            network_key: [1,2,3],
+            network_key: [1, 2, 3],
         };
 
         write(secretFile, contentSecret, false);
@@ -192,22 +193,22 @@ describe('Settings', () => {
             base_topic: 'zigbee2mqtt',
             include_device_information: false,
             force_disable_retain: false,
-            password: "mysecretpassword",
-            server: "my.mqtt.server",
-            user: "mysecretusername",
+            password: 'mysecretpassword',
+            server: 'my.mqtt.server',
+            user: 'mysecretusername',
         };
 
         expect(settings.get().mqtt).toStrictEqual(expected);
-        expect(settings.get().advanced.network_key).toStrictEqual([1,2,3]);
+        expect(settings.get().advanced.network_key).toStrictEqual([1, 2, 3]);
 
         settings.testing.write();
         expect(read(configurationFile)).toStrictEqual(contentConfiguration);
         expect(read(secretFile)).toStrictEqual(contentSecret);
 
         settings.set(['mqtt', 'user'], 'test123');
-        settings.set(['advanced', 'network_key'], [1,2,3, 4]);
+        settings.set(['advanced', 'network_key'], [1, 2, 3, 4]);
         expect(read(configurationFile)).toStrictEqual(contentConfiguration);
-        expect(read(secretFile)).toStrictEqual({...contentSecret, username: 'test123', network_key: [1,2,3,4]});
+        expect(read(secretFile)).toStrictEqual({...contentSecret, username: 'test123', network_key: [1, 2, 3, 4]});
     });
 
     it('Should read ALL secrets form a separate file', () => {
@@ -219,14 +220,14 @@ describe('Settings', () => {
             },
             advanced: {
                 network_key: '!secret network_key',
-            }
+            },
         };
 
         const contentSecret = {
             server: 'my.mqtt.server',
             username: 'mysecretusername',
             password: 'mysecretpassword',
-            network_key: [1,2,3],
+            network_key: [1, 2, 3],
         };
 
         write(secretFile, contentSecret, false);
@@ -236,13 +237,13 @@ describe('Settings', () => {
             base_topic: 'zigbee2mqtt',
             include_device_information: false,
             force_disable_retain: false,
-            password: "mysecretpassword",
-            server: "my.mqtt.server",
-            user: "mysecretusername",
+            password: 'mysecretpassword',
+            server: 'my.mqtt.server',
+            user: 'mysecretusername',
         };
 
         expect(settings.get().mqtt).toStrictEqual(expected);
-        expect(settings.get().advanced.network_key).toStrictEqual([1,2,3]);
+        expect(settings.get().advanced.network_key).toStrictEqual([1, 2, 3]);
 
         settings.testing.write();
         expect(read(configurationFile)).toStrictEqual(contentConfiguration);
@@ -269,7 +270,7 @@ describe('Settings', () => {
         write(devicesFile, contentDevices);
         const device = settings.getDevice('0x12345678');
         const expected = {
-            ID: "0x12345678",
+            ID: '0x12345678',
             friendly_name: '0x12345678',
             retain: false,
         };
@@ -279,7 +280,7 @@ describe('Settings', () => {
 
     it('Should read devices form 2 separate files', () => {
         const contentConfiguration = {
-            devices: ['devices.yaml', 'devices2.yaml']
+            devices: ['devices.yaml', 'devices2.yaml'],
         };
 
         const contentDevices = {
@@ -335,21 +336,14 @@ describe('Settings', () => {
         expect(read(devicesFile)).toStrictEqual(expected);
     });
 
-    it('Should add devices for first file when using 2 separates file', () => {
+    function extractFromMultipleDeviceConfigs(contentDevices2) {
         const contentConfiguration = {
-            devices: ['devices.yaml', 'devices2.yaml']
+            devices: ['devices.yaml', 'devices2.yaml'],
         };
 
         const contentDevices = {
             '0x12345678': {
                 friendly_name: '0x12345678',
-                retain: false,
-            },
-        };
-
-        const contentDevices2 = {
-            '0x87654321': {
-                friendly_name: '0x87654321',
                 retain: false,
             },
         };
@@ -374,6 +368,19 @@ describe('Settings', () => {
 
         expect(read(devicesFile)).toStrictEqual(expected);
         expect(read(devicesFile2)).toStrictEqual(contentDevices2);
+    }
+
+    it('Should add devices for first file when using 2 separates file', () => {
+        extractFromMultipleDeviceConfigs({
+            '0x87654321': {
+                friendly_name: '0x87654321',
+                retain: false,
+            },
+        });
+    });
+
+    it('Should add devices for first file when using 2 separates file and the second file is empty', () => {
+        extractFromMultipleDeviceConfigs(null);
     });
 
     it('Should add devices to a separate file if devices.yaml doesnt exist', () => {
@@ -394,8 +401,7 @@ describe('Settings', () => {
         };
 
         expect(read(devicesFile)).toStrictEqual(expected);
-    }
-    );
+    });
 
     it('Should add and remove devices to a separate file if devices.yaml doesnt exist', () => {
         const contentConfiguration = {
@@ -411,13 +417,12 @@ describe('Settings', () => {
         expect(read(configurationFile)).toStrictEqual({devices: 'devices.yaml'});
 
         expect(read(devicesFile)).toStrictEqual({});
-    }
-    );
+    });
 
     it('Should read groups', () => {
         const content = {
             groups: {
-                '1': {
+                1: {
                     friendly_name: '123',
                 },
             },
@@ -441,7 +446,7 @@ describe('Settings', () => {
         };
 
         const contentGroups = {
-            '1': {
+            1: {
                 friendly_name: '123',
             },
         };
@@ -466,7 +471,7 @@ describe('Settings', () => {
         };
 
         const contentGroups = {
-            '1': {
+            1: {
                 friendly_name: '123',
                 devices: [],
             },
@@ -517,7 +522,7 @@ describe('Settings', () => {
 
         const added = settings.addGroup('test123');
         const expected = {
-            '1': {
+            1: {
                 friendly_name: 'test123',
             },
         };
@@ -530,7 +535,7 @@ describe('Settings', () => {
 
         const added = settings.addGroup('test123', 123);
         const expected = {
-            '123': {
+            123: {
                 friendly_name: 'test123',
             },
         };
@@ -554,7 +559,7 @@ describe('Settings', () => {
             settings.addGroup('test123');
         }).toThrow(new Error("friendly_name 'test123' is already in use"));
         const expected = {
-            '1': {
+            1: {
                 friendly_name: 'test123',
             },
         };
@@ -570,7 +575,7 @@ describe('Settings', () => {
             settings.addGroup('test_id_123', 123);
         }).toThrow(new Error("Group ID '123' is already in use"));
         const expected = {
-            '123': {
+            123: {
                 friendly_name: 'test123',
             },
         };
@@ -584,14 +589,14 @@ describe('Settings', () => {
                 '0x123': {
                     friendly_name: 'bulb',
                     retain: true,
-                }
-            }
+                },
+            },
         });
 
         settings.addGroup('test123');
         settings.addDeviceToGroup('test123', ['0x123']);
         const expected = {
-            '1': {
+            1: {
                 friendly_name: 'test123',
                 devices: ['0x123'],
             },
@@ -606,19 +611,19 @@ describe('Settings', () => {
                 '0x123': {
                     friendly_name: 'bulb',
                     retain: true,
-                }
+                },
             },
             groups: {
-                '1': {
+                1: {
                     friendly_name: 'test123',
                     devices: ['0x123'],
-                }
-            }
+                },
+            },
         });
 
         settings.removeDeviceFromGroup('test123', ['0x123']);
         const expected = {
-            '1': {
+            1: {
                 friendly_name: 'test123',
                 devices: [],
             },
@@ -633,18 +638,18 @@ describe('Settings', () => {
                 '0x123': {
                     friendly_name: 'bulb',
                     retain: true,
-                }
+                },
             },
             groups: {
-                '1': {
+                1: {
                     friendly_name: 'test123',
-                }
-            }
+                },
+            },
         });
 
         settings.removeDeviceFromGroup('test123', ['0x123']);
         const expected = {
-            '1': {
+            1: {
                 friendly_name: 'test123',
             },
         };
@@ -658,12 +663,12 @@ describe('Settings', () => {
                 '0x123': {
                     friendly_name: 'bulb',
                     retain: true,
-                }
+                },
             },
         });
 
         expect(() => {
-            settings.removeDeviceFromGroup('test123', 'bulb')
+            settings.removeDeviceFromGroup('test123', 'bulb');
         }).toThrow(new Error("Group 'test123' does not exist"));
     });
 
@@ -673,13 +678,25 @@ describe('Settings', () => {
                 '0x123': {
                     friendly_name: 'bulb',
                     retain: true,
-                }
+                },
             },
         });
 
         expect(() => {
-            settings.addDevice('0x123')
+            settings.addDevice('0x123');
         }).toThrow(new Error("Device '0x123' already exists"));
+    });
+
+    it('Should not allow any string values for ext_pan_id', () => {
+        write(configurationFile, {
+            ...minimalConfig,
+            advanced: {ext_pan_id: 'NOT_GENERATE'},
+        });
+
+        settings.reRead();
+
+        const error = `advanced.ext_pan_id: should be array or 'GENERATE' (is 'NOT_GENERATE')`;
+        expect(settings.validate()).toEqual(expect.arrayContaining([error]));
     });
 
     it('Should not allow any string values for network_key', () => {
@@ -717,7 +734,6 @@ describe('Settings', () => {
         expect(settings.validate()).toEqual([]);
     });
 
-
     it('Should not allow retention configuration without MQTT v5', () => {
         write(configurationFile, {
             ...minimalConfig,
@@ -743,7 +759,7 @@ describe('Settings', () => {
         expect(settings.validate()).toEqual(expect.arrayContaining([error]));
     });
 
-    it('Validate should if settings does not conform to scheme', () => {
+    it('Should validate if settings do not conform to scheme', () => {
         write(configurationFile, {
             ...minimalConfig,
             advanced: null,
@@ -764,10 +780,13 @@ describe('Settings', () => {
     });
 
     it('Should throw error when yaml file is invalid', () => {
-        fs.writeFileSync(configurationFile, `
+        fs.writeFileSync(
+            configurationFile,
+            `
              good: 9
              \t wrong
-        `)
+        `,
+        );
 
         settings.testing.clear();
         const error = `Your YAML file: '${configurationFile}' is invalid (use https://jsonformatter.org/yaml-validator to find and fix the issue)`;
@@ -776,8 +795,7 @@ describe('Settings', () => {
 
     it('Should throw error when yaml file does not exist', () => {
         settings.testing.clear();
-        const error = `ENOENT: no such file or directory, open '${configurationFile}'`;
-        expect(settings.validate()).toEqual(expect.arrayContaining([error]));
+        expect(settings.validate()[0]).toContain(`ENOENT: no such file or directory, open `);
     });
 
     it('Configuration shouldnt be valid when invalid QOS value is used', async () => {
@@ -796,7 +814,7 @@ describe('Settings', () => {
         write(configurationFile, {
             ...minimalConfig,
             devices: {'0x0017880104e45519': {friendly_name: 'myname', retain: false}},
-            groups: {'1': {friendly_name: 'myname', retain: false}},
+            groups: {1: {friendly_name: 'myname', retain: false}},
         });
 
         settings.reRead();
@@ -865,23 +883,11 @@ describe('Settings', () => {
         expect(settings.validate()).toEqual(expect.arrayContaining([error]));
     });
 
-    it('Configuration shouldnt be valid when friendly_name is a postfix', async () => {
-        write(configurationFile, {
-            ...minimalConfig,
-            devices: {'0x0017880104e45519': {friendly_name: 'left', retain: false}},
-        });
-
-        settings.reRead();
-
-        const error = `Following friendly_name are not allowed: '${utils.endpointNames}'`;
-        expect(settings.validate()).toEqual(expect.arrayContaining([error]));
-    });
-
     it('Configuration shouldnt be valid when duplicate friendly_name are used', async () => {
         write(configurationFile, {
             devices: {
                 '0x0017880104e45519': {friendly_name: 'myname', retain: false},
-                '0x0017880104e45511': {friendly_name: 'myname1', retain: false}
+                '0x0017880104e45511': {friendly_name: 'myname1', retain: false},
             },
         });
 
@@ -896,7 +902,7 @@ describe('Settings', () => {
         write(configurationFile, {
             devices: {
                 '0x0017880104e45519': {friendly_name: 'myname', retain: false},
-                '0x0017880104e45511': {friendly_name: 'myname1', retain: false}
+                '0x0017880104e45511': {friendly_name: 'myname1', retain: false},
             },
         });
 
@@ -918,77 +924,127 @@ describe('Settings', () => {
         expect(before).toBe(after);
     });
 
-    it('Frontend config', () => {
-        write(configurationFile, {...minimalConfig,
-            frontend: true,
+    it('Should keep homeassistant null property on device setting change', () => {
+        write(configurationFile, {
+            devices: {
+                '0x12345678': {
+                    friendly_name: 'custom discovery',
+                    homeassistant: {
+                        entityXYZ: {
+                            entity_category: null,
+                        },
+                    },
+                },
+            },
         });
+        settings.changeEntityOptions('0x12345678', {disabled: true});
+
+        const actual = read(configurationFile);
+        const expected = {
+            devices: {
+                '0x12345678': {
+                    friendly_name: 'custom discovery',
+                    disabled: true,
+                    homeassistant: {
+                        entityXYZ: {
+                            entity_category: null,
+                        },
+                    },
+                },
+            },
+        };
+        expect(actual).toStrictEqual(expected);
+    });
+
+    it('Should keep homeassistant null properties on apply', async () => {
+        write(configurationFile, {
+            device_options: {
+                homeassistant: {temperature: null},
+            },
+            devices: {
+                '0x1234567812345678': {
+                    friendly_name: 'custom discovery',
+                    homeassistant: {humidity: null},
+                },
+            },
+        });
+        settings.reRead();
+        settings.apply({permit_join: false});
+        expect(settings.get().device_options.homeassistant).toStrictEqual({temperature: null});
+        expect(settings.get().devices['0x1234567812345678'].homeassistant).toStrictEqual({humidity: null});
+    });
+
+    it('Frontend config', () => {
+        write(configurationFile, {...minimalConfig, frontend: true});
 
         settings.reRead();
-        expect(settings.get().frontend).toStrictEqual({port: 8080, auth_token: false, host: '0.0.0.0'})
+        expect(settings.get().frontend).toStrictEqual({port: 8080, auth_token: false});
     });
 
     it('Baudrate config', () => {
-        write(configurationFile, {...minimalConfig,
-            advanced: {baudrate: 20},
-        });
+        write(configurationFile, {...minimalConfig, advanced: {baudrate: 20}});
 
         settings.reRead();
-        expect(settings.get().serial.baudrate).toStrictEqual(20)
+        expect(settings.get().serial.baudrate).toStrictEqual(20);
     });
 
     it('ikea_ota_use_test_url config', () => {
-        write(configurationFile, {...minimalConfig,
-            advanced: {ikea_ota_use_test_url: true},
-        });
+        write(configurationFile, {...minimalConfig, advanced: {ikea_ota_use_test_url: true}});
 
         settings.reRead();
-        expect(settings.get().ota.ikea_ota_use_test_url).toStrictEqual(true)
+        expect(settings.get().ota.ikea_ota_use_test_url).toStrictEqual(true);
     });
 
     it('transmit_power config', () => {
-        write(configurationFile, {...minimalConfig,
-            experimental: {transmit_power: 1337},
-        });
+        write(configurationFile, {...minimalConfig, experimental: {transmit_power: 1337}});
 
         settings.reRead();
-        expect(settings.get().advanced.transmit_power).toStrictEqual(1337)
+        expect(settings.get().advanced.transmit_power).toStrictEqual(1337);
     });
 
     it('output config', () => {
-        write(configurationFile, {...minimalConfig,
-            experimental: {output: 'json'},
-        });
+        write(configurationFile, {...minimalConfig, experimental: {output: 'json'}});
 
         settings.reRead();
-        expect(settings.get().advanced.output).toStrictEqual('json')
+        expect(settings.get().advanced.output).toStrictEqual('json');
     });
 
     it('Baudrartsctste config', () => {
-        write(configurationFile, {...minimalConfig,
-            advanced: {rtscts: true},
-        });
+        write(configurationFile, {...minimalConfig, advanced: {rtscts: true}});
 
         settings.reRead();
-        expect(settings.get().serial.rtscts).toStrictEqual(true)
+        expect(settings.get().serial.rtscts).toStrictEqual(true);
     });
 
     it('Deprecated: Home Assistant config', () => {
-        write(configurationFile, {...minimalConfig,
+        write(configurationFile, {
+            ...minimalConfig,
             homeassistant: {discovery_topic: 'new'},
             advanced: {homeassistant_discovery_topic: 'old', homeassistant_status_topic: 'olds'},
         });
 
         settings.reRead();
-        expect(settings.get().homeassistant).toStrictEqual({discovery_topic: 'new', legacy_entity_attributes: true, legacy_triggers: true, status_topic: 'olds'})
+        expect(settings.get().homeassistant).toStrictEqual({
+            discovery_topic: 'new',
+            legacy_entity_attributes: true,
+            legacy_triggers: true,
+            status_topic: 'olds',
+        });
     });
 
     it('Deprecated: ban/whitelist config', () => {
-        write(configurationFile, {...minimalConfig,
-            ban: ['ban'], whitelist: ['whitelist'], passlist: ['passlist'], blocklist: ['blocklist']
-        });
+        write(configurationFile, {...minimalConfig, ban: ['ban'], whitelist: ['whitelist'], passlist: ['passlist'], blocklist: ['blocklist']});
 
         settings.reRead();
-        expect(settings.get().blocklist).toStrictEqual(['blocklist', 'ban'])
-        expect(settings.get().passlist).toStrictEqual(['passlist', 'whitelist'])
+        expect(settings.get().blocklist).toStrictEqual(['blocklist', 'ban']);
+        expect(settings.get().passlist).toStrictEqual(['passlist', 'whitelist']);
+    });
+
+    it('Deprecated: warn log level', () => {
+        write(configurationFile, {...minimalConfig, advanced: {log_level: 'warn'}});
+
+        settings.reRead();
+
+        expect(settings.get().advanced.log_level).toStrictEqual('warning');
     });
 });

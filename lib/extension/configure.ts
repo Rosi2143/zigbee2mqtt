@@ -1,11 +1,13 @@
+import bind from 'bind-decorator';
+import stringify from 'json-stable-stringify-without-jsonify';
+
+import * as zhc from 'zigbee-herdsman-converters';
+
+import Device from '../model/device';
+import logger from '../util/logger';
 import * as settings from '../util/settings';
 import utils from '../util/utils';
-import logger from '../util/logger';
-import stringify from 'json-stable-stringify-without-jsonify';
-import zhc from 'zigbee-herdsman-converters';
 import Extension from './extension';
-import bind from 'bind-decorator';
-import Device from '../model/device';
 
 /**
  * This extension calls the zigbee-herdsman-converters definition configure() method
@@ -18,7 +20,7 @@ export default class Configure extends Extension {
 
     @bind private async onReconfigure(data: eventdata.Reconfigure): Promise<void> {
         // Disabling reporting unbinds some cluster which could be bound by configure, re-setup.
-        if (data.device.zh.meta?.hasOwnProperty('configured')) {
+        if (data.device.zh.meta?.configured !== undefined) {
             delete data.device.zh.meta.configured;
             data.device.zh.save();
         }
@@ -35,15 +37,15 @@ export default class Configure extends Extension {
             }
 
             if (!device.definition || !device.definition.configure) {
-                logger.warn(`Skipping configure of '${device.name}', device does not require this.`);
+                logger.warning(`Skipping configure of '${device.name}', device does not require this.`);
                 return;
             }
 
-            this.configure(device, 'mqtt_message', true);
+            await this.configure(device, 'mqtt_message', true);
         } else if (data.topic === this.topic) {
             const message = utils.parseJSON(data.message, data.message);
-            const ID = typeof message === 'object' && message.hasOwnProperty('id') ? message.id : message;
-            let error = null;
+            const ID = typeof message === 'object' && message.id !== undefined ? message.id : message;
+            let error: string | undefined;
 
             const device = this.zigbee.resolveEntity(ID);
             if (!device || !(device instanceof Device)) {
@@ -54,7 +56,7 @@ export default class Configure extends Extension {
                 try {
                     await this.configure(device, 'mqtt_message', true, true);
                 } catch (e) {
-                    error = `Failed to configure (${e.message})`;
+                    error = `Failed to configure (${(e as Error).message})`;
                 }
             }
 
@@ -65,18 +67,22 @@ export default class Configure extends Extension {
 
     override async start(): Promise<void> {
         setImmediate(async () => {
-            for (const device of this.zigbee.devices(false)) {
+            // Only configure routers on startup, end devices are likely sleeping and
+            // will reconfigure once they send a message
+            for (const device of this.zigbee.devicesIterator((d) => d.type === 'Router')) {
+                // Sleep 10 seconds between configuring on startup to not DDoS the coordinator when many devices have to be configured.
+                await utils.sleep(10);
                 await this.configure(device, 'started');
             }
         });
 
-        this.eventBus.onDeviceJoined(this, (data) => {
-            if (data.device.zh.meta.hasOwnProperty('configured')) {
+        this.eventBus.onDeviceJoined(this, async (data) => {
+            if (data.device.zh.meta.configured !== undefined) {
                 delete data.device.zh.meta.configured;
                 data.device.zh.save();
             }
 
-            this.configure(data.device, 'zigbee_event');
+            await this.configure(data.device, 'zigbee_event');
         });
         this.eventBus.onDeviceInterview(this, (data) => this.configure(data.device, 'zigbee_event'));
         this.eventBus.onLastSeenChanged(this, (data) => this.configure(data.device, 'zigbee_event'));
@@ -84,15 +90,22 @@ export default class Configure extends Extension {
         this.eventBus.onReconfigure(this, this.onReconfigure);
     }
 
-    private async configure(device: Device, event: 'started' | 'zigbee_event' | 'reporting_disabled' | 'mqtt_message',
-        force=false, thowError=false): Promise<void> {
+    private async configure(
+        device: Device,
+        event: 'started' | 'zigbee_event' | 'reporting_disabled' | 'mqtt_message',
+        force = false,
+        throwError = false,
+    ): Promise<void> {
+        if (!device.definition?.configure) {
+            return;
+        }
+
         if (!force) {
-            if (device.options.disabled || !device.definition?.configure || !device.zh.interviewCompleted) {
+            if (device.options.disabled || !device.zh.interviewCompleted) {
                 return;
             }
 
-            if (device.zh.meta?.hasOwnProperty('configured') &&
-                device.zh.meta.configured === zhc.getConfigureKey(device.definition)) {
+            if (device.zh.meta?.configured !== undefined) {
                 return;
             }
 
@@ -108,14 +121,13 @@ export default class Configure extends Extension {
 
         this.configuring.add(device.ieeeAddr);
 
-        if (!this.attempts.hasOwnProperty(device.ieeeAddr)) {
+        if (this.attempts[device.ieeeAddr] === undefined) {
             this.attempts[device.ieeeAddr] = 0;
         }
 
         logger.info(`Configuring '${device.name}'`);
         try {
-            await device.definition.configure(device.zh, this.zigbee.firstCoordinatorEndpoint(), logger,
-                device.options);
+            await device.definition.configure(device.zh, this.zigbee.firstCoordinatorEndpoint(), device.definition);
             logger.info(`Successfully configured '${device.name}'`);
             device.zh.meta.configured = zhc.getConfigureKey(device.definition);
             device.zh.save();
@@ -123,14 +135,14 @@ export default class Configure extends Extension {
         } catch (error) {
             this.attempts[device.ieeeAddr]++;
             const attempt = this.attempts[device.ieeeAddr];
-            const msg = `Failed to configure '${device.name}', attempt ${attempt} (${error.stack})`;
+            const msg = `Failed to configure '${device.name}', attempt ${attempt} (${(error as Error).stack})`;
             logger.error(msg);
 
-            if (thowError) {
+            if (throwError) {
                 throw error;
             }
+        } finally {
+            this.configuring.delete(device.ieeeAddr);
         }
-
-        this.configuring.delete(device.ieeeAddr);
     }
 }

@@ -1,38 +1,54 @@
-/* eslint-disable brace-style */
+import assert from 'assert';
+
+import * as zhc from 'zigbee-herdsman-converters';
+import {CustomClusters} from 'zigbee-herdsman/dist/zspec/zcl/definition/tstype';
+
 import * as settings from '../util/settings';
-import zigbeeHerdsmanConverters from 'zigbee-herdsman-converters';
 
 export default class Device {
     public zh: zh.Device;
-    private _definition: zhc.Definition;
-    private _definitionModelID: string;
+    public definition?: zhc.Definition;
+    private _definitionModelID?: string;
 
-    get ieeeAddr(): string {return this.zh.ieeeAddr;}
-    get ID(): string {return this.zh.ieeeAddr;}
-    get options(): DeviceOptions {return {...settings.get().device_options, ...settings.getDevice(this.ieeeAddr)};}
-    get name(): string {
-        return this.zh.type === 'Coordinator' ? 'Coordinator' : this.options?.friendly_name || this.ieeeAddr;
+    get ieeeAddr(): string {
+        return this.zh.ieeeAddr;
     }
-    get definition(): zhc.Definition {
-        // Some devices can change modelID, reconsider the definition in that case.
-        // https://github.com/Koenkk/zigbee-herdsman-converters/issues/3016
-        if (!this.zh.interviewing && (!this._definition || this._definitionModelID !== this.zh.modelID)) {
-            this._definition = zigbeeHerdsmanConverters.findByDevice(this.zh);
-            this._definitionModelID = this.zh.modelID;
-        }
-        return this._definition;
+    get ID(): string {
+        return this.zh.ieeeAddr;
+    }
+    get options(): DeviceOptionsWithId {
+        const deviceOptions = settings.getDevice(this.ieeeAddr) ?? {friendly_name: this.ieeeAddr, ID: this.ieeeAddr};
+        return {...settings.get().device_options, ...deviceOptions};
+    }
+    get name(): string {
+        return this.zh.type === 'Coordinator' ? 'Coordinator' : this.options?.friendly_name;
+    }
+    get isSupported(): boolean {
+        return this.zh.type === 'Coordinator' || Boolean(this.definition && !this.definition.generated);
+    }
+    get customClusters(): CustomClusters {
+        return this.zh.customClusters;
     }
 
     constructor(device: zh.Device) {
         this.zh = device;
     }
 
-    exposes(): zhc.DefinitionExpose[] {
+    exposes(): zhc.Expose[] {
+        assert(this.definition, 'Cannot retreive exposes before definition is resolved');
         /* istanbul ignore if */
         if (typeof this.definition.exposes == 'function') {
-            return this.definition.exposes(this.zh, this.options);
+            const options: KeyValue = this.options;
+            return this.definition.exposes(this.zh, options);
         } else {
             return this.definition.exposes;
+        }
+    }
+
+    async resolveDefinition(ignoreCache = false): Promise<void> {
+        if (!this.zh.interviewing && (!this.definition || this._definitionModelID !== this.zh.modelID || ignoreCache)) {
+            this.definition = await zhc.findByDevice(this.zh, true);
+            this._definitionModelID = this.zh.modelID;
         }
     }
 
@@ -42,38 +58,74 @@ export default class Device {
         }
     }
 
-    endpoint(key?: string | number): zh.Endpoint {
-        let endpoint: zh.Endpoint;
-        if (key == null || key == '') key = 'default';
+    endpoint(key?: string | number): zh.Endpoint | undefined {
+        let endpoint: zh.Endpoint | undefined;
+
+        if (key == null || key == '') {
+            key = 'default';
+        }
 
         if (!isNaN(Number(key))) {
             endpoint = this.zh.getEndpoint(Number(key));
         } else if (this.definition?.endpoint) {
             const ID = this.definition?.endpoint?.(this.zh)[key];
-            if (ID) endpoint = this.zh.getEndpoint(ID);
-            else if (key === 'default') endpoint = this.zh.endpoints[0];
-            else return null;
+
+            if (ID) {
+                endpoint = this.zh.getEndpoint(ID);
+            } else if (key === 'default') {
+                endpoint = this.zh.endpoints[0];
+            } else {
+                return undefined;
+            }
         } else {
             /* istanbul ignore next */
-            if (key !== 'default') return null;
+            if (key !== 'default') {
+                return undefined;
+            }
+
             endpoint = this.zh.endpoints[0];
         }
 
         return endpoint;
     }
 
-    endpointName(endpoint: zh.Endpoint): string {
-        let name = null;
+    endpointName(endpoint: zh.Endpoint): string | undefined {
+        let epName = undefined;
+
         if (this.definition?.endpoint) {
-            name = Object.entries(this.definition?.endpoint(this.zh)).find((e) => e[1] == endpoint.ID)[0];
+            const mapping = this.definition?.endpoint(this.zh);
+            for (const [name, id] of Object.entries(mapping)) {
+                if (id == endpoint.ID) {
+                    epName = name;
+                }
+            }
         }
+
         /* istanbul ignore next */
-        return name === 'default' ? null : name;
+        return epName === 'default' ? undefined : epName;
     }
 
-    isIkeaTradfri(): boolean {return this.zh.manufacturerID === 4476;}
+    getEndpointNames(): string[] {
+        const names: string[] = [];
 
-    isDevice(): this is Device {return true;}
+        for (const name in this.definition?.endpoint?.(this.zh) ?? {}) {
+            if (name !== 'default') {
+                names.push(name);
+            }
+        }
+
+        return names;
+    }
+
+    isIkeaTradfri(): boolean {
+        return this.zh.manufacturerID === 4476;
+    }
+
+    isDevice(): this is Device {
+        return true;
+    }
     /* istanbul ignore next */
-    isGroup(): this is Group {return false;}
+    isGroup(): this is Group {
+        return false;
+    }
 }
