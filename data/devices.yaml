@@ -33,7 +33,20 @@
     friendly_name: Livarno/AussenStrahler/Pool
   '0xa4c138a89e84c31c':
     friendly_name: Livarno/MessSteckdose/I
+    current_precision: 3
+    energy_precision: 1
+    power_precision: 1
+    voltage_precision: 1
   '0xa4c13853e91a9519':
     friendly_name: Livarno/MessSteckdose/II
+    current_precision: 3
+    energy_precision: 1
+    power_precision: 1
+    voltage_precision: 1
   '0xa4c1385bbdd83126':
     friendly_name: Livarno/MessSteckdose/III
+    current_precision: 3
+    energy_precision: 1
+    power_precision: 1
+    voltage_precision: 1
+
