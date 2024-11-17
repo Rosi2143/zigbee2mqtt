@@ -1,4 +1,5 @@
 homeassistant: false
+frontend: true
 permit_join: false
 availability:
   active:

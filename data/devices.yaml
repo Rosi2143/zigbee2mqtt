@@ -1,52 +1,52 @@
-# https://www.zigbee2mqtt.io/guide/configuration/devices-groups.html#extract-config-to-separate-files
-  '0xbc33acfffe27ccf2':
-    friendly_name: IKEA/Bewegungsmelder/Buero
-  '0x0c4314fffef8c1e9':
-    friendly_name: IKEA/Bewegungsmelder/Gaestezimmer
-  '0xbc33acfffea786d4':
-    friendly_name: IKEA/Bewegungsmelder/Abstellraum
-    occupancy_timeout: 60
-  '0x5c0272fffed27765':
-    friendly_name: IKEA/Bewegungsmelder/GastWC
-    occupancy_timeout: 600
-  '0x847127fffed29a06':
-    friendly_name: IKEA/Bewegungsmelder/Werkstatt
-  '0x04cd15fffe2d3b4e':
-    friendly_name: IKEA/Fernbedienung/Schlafzimmer
-  '0x000d6ffffe4b1c65':
-    friendly_name: IKEA/Fernbedienung/Terrasse
-  '0x000d6ffffe62dab9':
-    friendly_name: IKEA/Lampe/Buero_Lampe
-  '0x14b457fffe43aa7b':
-    friendly_name: IKEA/Lampe/Terrasse_Pergola_Links
-  '0x14b457fffe40fe5d':
-    friendly_name: IKEA/Lampe/Terrasse_Pergola_Rechts
-  '0xcc86ecfffe1ef7f0':
-    friendly_name: IKEA/SignalVerstarker
-  '0x60a423fffe091f97':
-    friendly_name: Livarno/AussenSteckdose/Rosenbogen
-  '0x60a423fffe0b6228':
-    friendly_name: Livarno/AussenSteckdose/Pool
-  '0x04cd15fffe0d94a0':
-    friendly_name: Livarno/AussenStrahler/Rosenbogen
-  '0x04cd15fffe5cc673':
-    friendly_name: Livarno/AussenStrahler/Pool
-  '0xa4c138a89e84c31c':
-    friendly_name: Livarno/MessSteckdose/I
-    current_precision: 3
-    energy_precision: 1
-    power_precision: 1
-    voltage_precision: 1
-  '0xa4c13853e91a9519':
-    friendly_name: Livarno/MessSteckdose/II
-    current_precision: 3
-    energy_precision: 1
-    power_precision: 1
-    voltage_precision: 1
-  '0xa4c1385bbdd83126':
-    friendly_name: Livarno/MessSteckdose/III
-    current_precision: 3
-    energy_precision: 1
-    power_precision: 1
-    voltage_precision: 1
-
+'0xbc33acfffe27ccf2':
+  friendly_name: IKEA/Bewegungsmelder/Buero
+'0x0c4314fffef8c1e9':
+  friendly_name: IKEA/Bewegungsmelder/Gaestezimmer
+'0xbc33acfffea786d4':
+  friendly_name: IKEA/Bewegungsmelder/Abstellraum
+  occupancy_timeout: 60
+'0x5c0272fffed27765':
+  friendly_name: IKEA/Bewegungsmelder/GastWC
+  occupancy_timeout: 600
+'0x847127fffed29a06':
+  friendly_name: IKEA/Bewegungsmelder/Werkstatt
+'0x04cd15fffe2d3b4e':
+  friendly_name: IKEA/Fernbedienung/Schlafzimmer
+'0x000d6ffffe4b1c65':
+  friendly_name: IKEA/Fernbedienung/Terrasse
+'0x000d6ffffe62dab9':
+  friendly_name: IKEA/Lampe/Buero_Lampe
+'0x14b457fffe43aa7b':
+  friendly_name: IKEA/Lampe/Terrasse_Pergola_Links
+'0x14b457fffe40fe5d':
+  friendly_name: IKEA/Lampe/Terrasse_Pergola_Rechts
+'0xcc86ecfffe1ef7f0':
+  friendly_name: IKEA/SignalVerstarker
+'0x60a423fffe091f97':
+  friendly_name: Livarno/AussenSteckdose/Rosenbogen
+'0x60a423fffe0b6228':
+  friendly_name: Livarno/AussenSteckdose/Pool
+'0x04cd15fffe0d94a0':
+  friendly_name: Livarno/AussenStrahler/Rosenbogen
+'0x04cd15fffe5cc673':
+  friendly_name: Livarno/AussenStrahler/Pool
+'0xa4c138a89e84c31c':
+  friendly_name: Livarno/MessSteckdose/I
+  current_precision: 3
+  energy_precision: 1
+  power_precision: 1
+  voltage_precision: 1
+'0xa4c13853e91a9519':
+  friendly_name: Livarno/MessSteckdose/II
+  current_precision: 3
+  energy_precision: 1
+  power_precision: 1
+  voltage_precision: 1
+'0xa4c1385bbdd83126':
+  friendly_name: Livarno/MessSteckdose/III
+  current_precision: 3
+  energy_precision: 1
+  power_precision: 1
+  voltage_precision: 1
+'0x7cb03eaa0a09e490':
+  friendly_name: OSRAM/Steckdose/I
