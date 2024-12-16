@@ -4,7 +4,7 @@
   friendly_name: IKEA/Bewegungsmelder/Gaestezimmer
 '0xbc33acfffea786d4':
   friendly_name: IKEA/Bewegungsmelder/Abstellraum
-  occupancy_timeout: 60
+  occupancy_timeout: 600
 '0x5c0272fffed27765':
   friendly_name: IKEA/Bewegungsmelder/GastWC
   occupancy_timeout: 600
@@ -50,3 +50,5 @@
   voltage_precision: 1
 '0x7cb03eaa0a09e490':
   friendly_name: OSRAM/Steckdose/I
+'0x7cb03eaa0a0905ae':
+  friendly_name: '0x7cb03eaa0a0905ae'
