@@ -1,21 +1,24 @@
-import type {IncomingMessage, Server, ServerResponse} from 'http';
-import type {Socket} from 'net';
+import type {IncomingMessage, Server, ServerResponse} from 'node:http';
+import type {Socket} from 'node:net';
 
-import assert from 'assert';
-import {existsSync, readFileSync} from 'fs';
-import {createServer} from 'http';
-import {createServer as createSecureServer} from 'https';
-import {posix} from 'path';
-import {parse} from 'url';
+import type {RequestHandler} from 'express-static-gzip';
+
+import assert from 'node:assert';
+import {existsSync, readFileSync} from 'node:fs';
+import {createServer} from 'node:http';
+import {createServer as createSecureServer} from 'node:https';
+import {posix} from 'node:path';
+import {parse} from 'node:url';
 
 import bind from 'bind-decorator';
-import expressStaticGzip, {RequestHandler} from 'express-static-gzip';
+import expressStaticGzip from 'express-static-gzip';
 import finalhandler from 'finalhandler';
 import stringify from 'json-stable-stringify-without-jsonify';
 import WebSocket from 'ws';
 
 import frontend from 'zigbee2mqtt-frontend';
 
+import data from '../util/data';
 import logger from '../util/logger';
 import * as settings from '../util/settings';
 import utils from '../util/utils';
@@ -33,6 +36,7 @@ export default class Frontend extends Extension {
     private authToken: string | undefined;
     private server!: Server;
     private fileServer!: RequestHandler;
+    private deviceIconsFileServer!: RequestHandler;
     private wss!: WebSocket.Server;
     private baseUrl: string;
 
@@ -49,7 +53,7 @@ export default class Frontend extends Extension {
         super(zigbee, mqtt, state, publishEntityState, eventBus, enableDisableExtension, restartCallback, addExtension);
 
         const frontendSettings = settings.get().frontend;
-        assert(frontendSettings, 'Frontend extension created without having frontend settings');
+        assert(frontendSettings.enabled, `Frontend extension created with setting 'enabled: false'`);
         this.host = frontendSettings.host;
         this.port = frontendSettings.port;
         this.sslCert = frontendSettings.ssl_cert;
@@ -71,21 +75,23 @@ export default class Frontend extends Extension {
     }
 
     override async start(): Promise<void> {
-        /* istanbul ignore next */
         const options = {
             enableBrotli: true,
             // TODO: https://github.com/Koenkk/zigbee2mqtt/issues/24654 - enable compressed index serving when express-static-gzip is fixed.
             index: false,
             serveStatic: {
                 index: 'index.html',
+                /* v8 ignore start */
                 setHeaders: (res: ServerResponse, path: string): void => {
                     if (path.endsWith('index.html')) {
                         res.setHeader('Cache-Control', 'no-store');
                     }
                 },
+                /* v8 ignore stop */
             },
         };
         this.fileServer = expressStaticGzip(frontend.getPath(), options);
+        this.deviceIconsFileServer = expressStaticGzip(data.joinPath('device_icons'), options);
         this.wss = new WebSocket.Server({noServer: true, path: posix.join(this.baseUrl, 'api')});
 
         this.wss.on('connection', this.onWebSocketConnection);
@@ -141,7 +147,13 @@ export default class Frontend extends Extension {
         request.url = '/' + newUrl;
         request.path = request.url;
 
-        this.fileServer(request, response, fin);
+        if (newUrl.startsWith('device_icons/')) {
+            request.path = request.path.replace('device_icons/', '');
+            request.url = request.url.replace('/device_icons', '');
+            this.deviceIconsFileServer(request, response, fin);
+        } else {
+            this.fileServer(request, response, fin);
+        }
     }
 
     private authenticate(request: IncomingMessage, cb: (authenticate: boolean) => void): void {
@@ -172,7 +184,6 @@ export default class Frontend extends Extension {
         });
 
         for (const [topic, payload] of Object.entries(this.mqtt.retainedMessages)) {
-            /* istanbul ignore else */
             if (topic.startsWith(`${this.mqttBaseTopic}/`)) {
                 ws.send(
                     stringify({
@@ -188,9 +199,8 @@ export default class Frontend extends Extension {
             const payload = this.state.get(device);
             const lastSeen = settings.get().advanced.last_seen;
 
-            /* istanbul ignore if */
             if (lastSeen !== 'disable') {
-                payload.last_seen = utils.formatDate(device.zh.lastSeen ?? 0, lastSeen);
+                payload.last_seen = utils.formatDate(device.zh.lastSeen ?? /* v8 ignore next */ 0, lastSeen);
             }
 
             if (device.zh.linkquality !== undefined) {
@@ -202,14 +212,12 @@ export default class Frontend extends Extension {
     }
 
     @bind private onMQTTPublishMessage(data: eventdata.MQTTMessagePublished): void {
-        /* istanbul ignore else */
         if (data.topic.startsWith(`${this.mqttBaseTopic}/`)) {
             // Send topic without base_topic
             const topic = data.topic.substring(this.mqttBaseTopic.length + 1);
             const payload = utils.parseJSON(data.payload, data.payload);
 
             for (const client of this.wss.clients) {
-                /* istanbul ignore else */
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(stringify({topic, payload}));
                 }

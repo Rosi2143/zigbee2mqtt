@@ -1,8 +1,7 @@
-import assert from 'assert';
-import fs from 'fs';
-import path from 'path';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
 
-import fx from 'mkdir-recursive';
 import moment from 'moment';
 import {rimrafSync} from 'rimraf';
 import winston from 'winston';
@@ -60,11 +59,9 @@ class Logger {
                 // winston.config.syslog.levels sets 'warning' as 'red'
                 format: winston.format.combine(
                     winston.format.colorize({colors: {debug: 'blue', info: 'green', warning: 'yellow', error: 'red'}}),
-                    winston.format.printf(
-                        /* istanbul ignore next */ (info) => {
-                            return `[${info.timestamp}] ${info.level}: \t${info.message}`;
-                        },
-                    ),
+                    winston.format.printf((info) => {
+                        return `[${info.timestamp}] ${info.level}: \t${info.message}`;
+                    }),
                 ),
             }),
         );
@@ -73,15 +70,18 @@ class Logger {
             logging += `, file (filename: ${logFilename})`;
 
             // Make sure that log directory exists when not logging to stdout only
-            fx.mkdirSync(this.directory);
+            fs.mkdirSync(this.directory, {recursive: true});
 
             if (settings.get().advanced.log_symlink_current) {
                 const current = settings.get().advanced.log_directory.replace('%TIMESTAMP%', 'current');
                 const actual = './' + timestamp;
-                /* istanbul ignore next */
+
+                /* v8 ignore start */
                 if (fs.existsSync(current)) {
                     fs.unlinkSync(current);
                 }
+                /* v8 ignore stop */
+
                 fs.symlinkSync(actual, current);
             }
 
@@ -89,11 +89,9 @@ class Logger {
             // NOTE: the initiation of the logger even when not added as transport tries to create the logging directory
             const transportFileOptions: winston.transports.FileTransportOptions = {
                 filename: path.join(this.directory, logFilename),
-                format: winston.format.printf(
-                    /* istanbul ignore next */ (info) => {
-                        return `[${info.timestamp}] ${info.level}: \t${info.message}`;
-                    },
-                ),
+                format: winston.format.printf((info) => {
+                    return `[${info.timestamp}] ${info.level}: \t${info.message}`;
+                }),
             };
 
             if (settings.get().advanced.log_rotation) {
@@ -104,9 +102,10 @@ class Logger {
 
             this.fileTransport = new winston.transports.File(transportFileOptions);
             this.logger.add(this.fileTransport);
+            this.cleanup();
         }
 
-        /* istanbul ignore next */
+        /* v8 ignore start */
         if (this.output.includes('syslog')) {
             logging += `, syslog`;
             // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unused-expressions
@@ -125,6 +124,7 @@ class Logger {
             // @ts-expect-error untyped transport
             this.logger.add(new winston.transports.Syslog(options));
         }
+        /* v8 ignore stop */
 
         this.setDebugNamespaceIgnore(settings.get().advanced.log_debug_namespace_ignore);
 
@@ -220,7 +220,7 @@ class Logger {
     }
 
     // Cleanup any old log directory.
-    public cleanup(): void {
+    private cleanup(): void {
         if (settings.get().advanced.log_directory.includes('%TIMESTAMP%')) {
             const rootDirectory = path.join(this.directory, '..');
 
@@ -240,7 +240,7 @@ class Logger {
 
     // Workaround for https://github.com/winstonjs/winston/issues/1629.
     // https://github.com/Koenkk/zigbee2mqtt/pull/10905
-    /* istanbul ignore next */
+    /* v8 ignore start */
     public async end(): Promise<void> {
         this.logger.end();
 
@@ -259,6 +259,7 @@ class Logger {
             }
         });
     }
+    /* v8 ignore stop */
 }
 
 export default new Logger();

@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs';
 
 import objectAssignDeep from 'object-assign-deep';
 
@@ -15,7 +15,6 @@ const dontCacheProperties = [
     'button',
     'button_left',
     'button_right',
-    'click',
     'forgotten',
     'keyerror',
     'step_size',
@@ -29,6 +28,7 @@ const dontCacheProperties = [
     'elapsed',
     'from_side',
     'to_side',
+    'illuminance_lux', // removed in z2m 2.0.0
 ];
 
 class State {
