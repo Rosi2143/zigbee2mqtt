@@ -49,13 +49,13 @@ advanced:
     - 101
   log_level: info
   timestamp_format: YYYY-MM-DD HH:mm:ss
-  log_directory: data/log/%TIMESTAMP%
+  log_directory: /media/EAD1-0E0A/zigbee2mqtt/log/%TIMESTAMP%
   log_file: log.txt
   log_rotation: true
   log_output:
     - console
     - file
-  log_symlink_current: false
+  log_symlink_current: true
   log_syslog:
     host: localhost
     port: 514

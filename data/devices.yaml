@@ -66,11 +66,29 @@
   humidity_precision: 0
 '0xa4c13826d72d9b10':
   friendly_name: Tuya/Rain/I
-'0xa4c1389de3cebc3d':
-  friendly_name: '0xa4c1389de3cebc3d'
-'0xa4c1383b2ea4ad58':
-  friendly_name: '0xa4c1383b2ea4ad58'
 '0xa4c138de8a229c80':
   friendly_name: Tuya/Rain/II
+'0xa4c1389de3cebc3d':
+  friendly_name: Tuya/Soil/III
+  temperature_precision: 1
+  illuminance_raw: true
+'0xa4c1383b2ea4ad58':
+  friendly_name: Tuya/Soil/II
+  temperature_precision: 1
+  illuminance_raw: true
 '0xa4c13802e956963f':
   friendly_name: Tuya/Soil/I
+  temperature_precision: 1
+  illuminance_raw: true
+'0xa4c1385eeb9a7b55':
+  friendly_name: Tuya/Soil/IV
+  temperature_precision: 1
+  illuminance_raw: true
+'0xa4c1387fa70813c3':
+  friendly_name: Tuya/Soil/V
+  temperature_precision: 1
+  illuminance_raw: true
+'0xa4c13865282b6a13':
+  friendly_name: Tuya/Soil/VI
+  temperature_precision: 1
+  illuminance_raw: true
