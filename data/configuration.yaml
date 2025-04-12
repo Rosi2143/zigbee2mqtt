@@ -1,12 +1,13 @@
-homeassistant: false
-frontend: true
-permit_join: false
+homeassistant:
+  enabled: false
+frontend:
+  enabled: true
+  port: 8081
 availability:
+  enabled: true
   active:
-    # default 10
     timeout: 30
   passive:
-    # default 1500
     timeout: 4500
 map_options:
   graphviz:
@@ -26,6 +27,7 @@ mqtt:
   base_topic: zigbee2mqtt
   server: mqtt://localhost:1883
 serial:
+  adapter: zstack
   port: /dev/ttyACM0
 advanced:
   network_key:
@@ -45,9 +47,6 @@ advanced:
     - 221
     - 239
     - 101
-  homeassistant_legacy_entity_attributes: false
-  legacy_api: false
-  ikea_ota_use_test_url: true
   log_level: info
   timestamp_format: YYYY-MM-DD HH:mm:ss
   log_directory: data/log/%TIMESTAMP%
@@ -68,7 +67,7 @@ advanced:
     type: '5424'
     app_name: Zigbee2MQTT
     eol: \n
-device_options:
-  legacy: false
+device_options: {}
 devices: devices.yaml
 groups: groups.yaml
+version: 4

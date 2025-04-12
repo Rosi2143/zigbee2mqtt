@@ -52,3 +52,25 @@
   friendly_name: OSRAM/Steckdose/I
 '0x7cb03eaa0a0905ae':
   friendly_name: OSRAM/Steckdose/II
+'0xa4c138010b0f1abf':
+  friendly_name: Tuya/Temperature/I
+  temperature_precision: 1
+  humidity_precision: 0
+'0xa4c138eeeea25ad1':
+  friendly_name: Tuya/Temperature/II
+  temperature_precision: 1
+  humidity_precision: 0
+'0xa4c13813dc605164':
+  friendly_name: Tuya/Temperature/III
+  temperature_precision: 1
+  humidity_precision: 0
+'0xa4c13826d72d9b10':
+  friendly_name: Tuya/Rain/I
+'0xa4c1389de3cebc3d':
+  friendly_name: '0xa4c1389de3cebc3d'
+'0xa4c1383b2ea4ad58':
+  friendly_name: '0xa4c1383b2ea4ad58'
+'0xa4c138de8a229c80':
+  friendly_name: Tuya/Rain/II
+'0xa4c13802e956963f':
+  friendly_name: Tuya/Soil/I
