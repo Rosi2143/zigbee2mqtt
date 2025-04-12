@@ -27,7 +27,7 @@ import Extension from './extension';
 /**
  * This extension servers the frontend
  */
-export default class Frontend extends Extension {
+export class Frontend extends Extension {
     private mqttBaseTopic: string;
     private host: string | undefined;
     private port: number;
@@ -124,12 +124,12 @@ export default class Frontend extends Extension {
     override async stop(): Promise<void> {
         await super.stop();
         this.wss?.clients.forEach((client) => {
-            client.send(stringify({topic: 'bridge/state', payload: 'offline'}));
+            client.send(stringify({topic: 'bridge/state', payload: {state: 'offline'}}));
             client.terminate();
         });
         this.wss?.close();
 
-        await new Promise((resolve) => this.server.close(resolve));
+        await new Promise((resolve) => this.server?.close(resolve));
     }
 
     @bind private onRequest(request: IncomingMessage, response: ServerResponse): void {
@@ -225,3 +225,5 @@ export default class Frontend extends Extension {
         }
     }
 }
+
+export default Frontend;

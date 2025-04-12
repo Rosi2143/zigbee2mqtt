@@ -1,4 +1,4 @@
-import type {Zigbee2MQTTAPI} from 'lib/types/api';
+import type {Zigbee2MQTTAPI} from '../types/api';
 
 import assert from 'node:assert';
 
@@ -243,6 +243,8 @@ export default class Availability extends Extension {
                         options,
                         state,
                         device: device.zh,
+                        /* v8 ignore next */
+                        publish: (payload: KeyValue) => this.publishEntityState(device, payload),
                     };
 
                     try {

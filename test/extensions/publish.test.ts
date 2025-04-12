@@ -7,7 +7,7 @@ import {devices, groups, events as mockZHEvents} from '../mocks/zigbeeHerdsman';
 
 import stringify from 'json-stable-stringify-without-jsonify';
 
-import {toZigbee} from 'zigbee-herdsman-converters';
+import {clearGlobalStore} from 'zigbee-herdsman-converters';
 
 import {Controller} from '../../lib/controller';
 import {loadTopicGetSetRegex} from '../../lib/extension/publish';
@@ -58,13 +58,15 @@ describe('Extension: Publish', () => {
             g.command.mockClear();
         });
 
-        toZigbee.__clearStore__();
+        clearGlobalStore();
     });
 
     afterAll(async () => {
         await vi.runOnlyPendingTimersAsync();
-        vi.useRealTimers();
         mockSleep.restore();
+        await controller?.stop();
+        await flushPromises();
+        vi.useRealTimers();
     });
 
     it('Should publish messages to zigbee devices', async () => {
@@ -626,7 +628,7 @@ describe('Extension: Publish', () => {
         mockLogger.error.mockClear();
         await mockMQTTEvents.message('zigbee2mqtt/0x0017880104e45542/get', stringify({state_center: '', state_right: ''}));
         await flushPromises();
-        expect(mockLogger.error).toHaveBeenCalledWith(`No converter available for 'state_center' ("")`);
+        expect(mockLogger.error).toHaveBeenCalledWith(`No converter available for 'state_center' on 'wall_switch_double': ("")`);
         expect(endpoint2.read).toHaveBeenCalledTimes(0);
         expect(endpoint3.read).toHaveBeenCalledTimes(1);
         expect(endpoint3.read).toHaveBeenCalledWith('genOnOff', ['onOff']);
@@ -1511,7 +1513,7 @@ describe('Extension: Publish', () => {
         await mockMQTTEvents.message('zigbee2mqtt/bulb_color/set', stringify({state: 'ON', brightness: 20, transition: 0.0}));
         await flushPromises();
 
-        toZigbee.__clearStore__();
+        clearGlobalStore();
 
         await mockMQTTEvents.message('zigbee2mqtt/bulb_color/set', stringify({state: 'ON', transition: 1.0}));
         await flushPromises();

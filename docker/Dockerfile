@@ -12,7 +12,7 @@ FROM linux-${TARGETARCH}-alpine AS base
 
 ENV NODE_ENV=production
 WORKDIR /app
-RUN apk add --no-cache tzdata eudev tini nodejs libcap
+RUN apk add --no-cache tzdata eudev tini nodejs
 
 # Dependencies and build
 FROM base AS deps
@@ -20,7 +20,7 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
 # Make and such are needed to compile serialport for riscv64
 RUN apk add make gcc g++ python3 linux-headers npm && \
-    npm install -g pnpm && \
+    npm install -g pnpm@10.4.1 && \
     pnpm install --frozen-lockfile --no-optional && \
     # serialport has outdated prebuilds that appear to fail on some archs, force build on target platform
     rm -rf `find ./node_modules/.pnpm/ -wholename "*/@serialport/bindings-cpp/prebuilds" -type d` && \
@@ -43,11 +43,13 @@ LABEL org.opencontainers.image.version=${VERSION}
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY dist ./dist
+# To prevent `Error: EACCES: permission denied, mkdir '/app/dist/external_converters'`
+# when running rootless.
+RUN chmod -R 777 ./dist
 COPY package.json LICENSE index.js data/configuration.example.yaml ./
 
 COPY docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-RUN setcap 'cap_net_bind_service=+ep' /usr/bin/node
 
 RUN mkdir /app/data
 

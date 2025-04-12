@@ -14,6 +14,7 @@ import {devices, mockController as mockZHController, events as mockZHEvents, ret
 import type {Mock, MockInstance} from 'vitest';
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 import stringify from 'json-stable-stringify-without-jsonify';
@@ -24,15 +25,12 @@ import {Controller as ZHController} from 'zigbee-herdsman';
 import {Controller} from '../lib/controller';
 import * as settings from '../lib/util/settings';
 
-process.env.NOTIFY_SOCKET = 'mocked';
 const LOG_MQTT_NS = 'z2m:mqtt';
 
-vi.mock('sd-notify', () => ({
-    watchdogInterval: vi.fn(() => 3000),
-    startWatchdogMode: vi.fn(),
-    stopWatchdogMode: vi.fn(),
-    ready: vi.fn(),
-    stopping: vi.fn(),
+const mockUnixDgramSend = vi.fn();
+
+vi.mock('unix-dgram', () => ({
+    createSocket: vi.fn(() => ({send: mockUnixDgramSend})),
 }));
 
 const mocksClear = [
@@ -49,6 +47,7 @@ const mocksClear = [
     mockLogger.debug,
     mockLogger.info,
     mockLogger.error,
+    mockUnixDgramSend,
 ];
 
 describe('Controller', () => {
@@ -76,6 +75,7 @@ describe('Controller', () => {
 
     afterEach(async () => {
         await controller?.stop();
+        await flushPromises();
     });
 
     it('Start controller', async () => {
@@ -148,6 +148,46 @@ describe('Controller', () => {
             key: Buffer.from([107, 101, 121]),
             cert: Buffer.from([99, 101, 114, 116]),
             password: 'pass',
+            username: 'user1',
+            clientId: 'my_client_id',
+            rejectUnauthorized: false,
+            protocolVersion: 5,
+            properties: {maximumPacketSize: 20000},
+        };
+        expect(mockMQTTConnectAsync).toHaveBeenCalledWith('mqtt://localhost', expected);
+    });
+
+    it('Start controller with only username MQTT settings', async () => {
+        const ca = tmp.fileSync().name;
+        fs.writeFileSync(ca, 'ca');
+        const key = tmp.fileSync().name;
+        fs.writeFileSync(key, 'key');
+        const cert = tmp.fileSync().name;
+        fs.writeFileSync(cert, 'cert');
+
+        const configuration = {
+            base_topic: 'zigbee2mqtt',
+            server: 'mqtt://localhost',
+            keepalive: 30,
+            ca,
+            cert,
+            key,
+            user: 'user1',
+            client_id: 'my_client_id',
+            reject_unauthorized: false,
+            version: 5,
+            maximum_packet_size: 20000,
+        };
+        settings.set(['mqtt'], configuration);
+        await controller.start();
+        await flushPromises();
+        expect(mockMQTTConnectAsync).toHaveBeenCalledTimes(1);
+        const expected = {
+            will: {payload: Buffer.from('{"state":"offline"}'), retain: true, topic: 'zigbee2mqtt/bridge/state', qos: 1},
+            keepalive: 30,
+            ca: Buffer.from([99, 97]),
+            key: Buffer.from([107, 101, 121]),
+            cert: Buffer.from([99, 101, 114, 116]),
             username: 'user1',
             clientId: 'my_client_id',
             rejectUnauthorized: false,
@@ -298,7 +338,7 @@ describe('Controller', () => {
         expect(mockExit).toHaveBeenCalledWith(0, true);
     });
 
-    it('Start controller and stop', async () => {
+    it('Start controller and stop without SdNotify', async () => {
         mockZHController.stop.mockRejectedValueOnce('failed');
         await controller.start();
         await controller.stop();
@@ -306,6 +346,24 @@ describe('Controller', () => {
         expect(mockZHController.stop).toHaveBeenCalledTimes(1);
         expect(mockExit).toHaveBeenCalledTimes(1);
         expect(mockExit).toHaveBeenCalledWith(1, false);
+        expect(mockUnixDgramSend).toHaveBeenCalledTimes(0);
+    });
+
+    it('Start controller and stop with SdNotify', async () => {
+        vi.spyOn(os, 'platform').mockImplementationOnce(() => 'linux');
+
+        process.env.NOTIFY_SOCKET = 'mocked'; // coverage
+
+        mockZHController.stop.mockRejectedValueOnce('failed');
+        await controller.start();
+        await controller.stop();
+        expect(mockMQTTEndAsync).toHaveBeenCalledTimes(1);
+        expect(mockZHController.stop).toHaveBeenCalledTimes(1);
+        expect(mockExit).toHaveBeenCalledTimes(1);
+        expect(mockExit).toHaveBeenCalledWith(1, false);
+        expect(mockUnixDgramSend).toHaveBeenCalledTimes(2);
+
+        delete process.env.NOTIFY_SOCKET;
     });
 
     it('Start controller adapter disconnects', async () => {
@@ -1049,5 +1107,17 @@ describe('Controller', () => {
         await flushPromises();
         expect(callback).toHaveBeenCalledTimes(1);
         expect(mockLogger.error).toHaveBeenCalledWith(`EventBus error 'Test/stateChange': Whoops!`);
+    });
+
+    it('prevents interacting with invalid extensions', async () => {
+        await controller.start();
+
+        await expect(async () => {
+            await controller.enableDisableExtension(true, 'Fake');
+        }).rejects.toThrow("Extension Fake does not exist (should be added with 'addExtension') or is built-in that cannot be enabled at runtime");
+
+        await expect(async () => {
+            await controller.enableDisableExtension(false, 'Availability');
+        }).rejects.toThrow('Built-in extension Availability cannot be disabled at runtime');
     });
 });

@@ -11,7 +11,6 @@ import yaml, {YAMLFileException} from './yaml';
 export {schemaJson};
 // When updating also update:
 // - https://github.com/Koenkk/zigbee2mqtt/blob/dev/data/configuration.example.yaml#L2
-// - https://github.com/zigbee2mqtt/hassio-zigbee2mqtt/blob/master/common/rootfs/docker-entrypoint.sh#L54
 export const CURRENT_VERSION = 4;
 /** NOTE: by order of priority, lower index is lower level (more important) */
 export const LOG_LEVELS: readonly string[] = ['error', 'warning', 'info', 'debug'] as const;
@@ -86,6 +85,7 @@ export const defaults: RecursivePartial<Settings> = {
     device_options: {},
     advanced: {
         log_rotation: true,
+        log_console_json: false,
         log_symlink_current: false,
         log_output: ['console', 'file'],
         log_directory: path.join(data.getPath(), 'log', '%TIMESTAMP%'),
@@ -95,6 +95,7 @@ export const defaults: RecursivePartial<Settings> = {
         log_syslog: {},
         log_debug_to_mqtt_frontend: false,
         log_debug_namespace_ignore: '',
+        log_directories_to_keep: 10,
         pan_id: 0x1a62,
         ext_pan_id: [0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd],
         channel: 11,
@@ -144,7 +145,39 @@ function parseValueRef(text: string): {filename: string; key: string} | null {
     }
 }
 
-function write(): void {
+export function writeMinimalDefaults(): void {
+    const minimal = {
+        version: CURRENT_VERSION,
+        mqtt: {
+            base_topic: defaults.mqtt!.base_topic,
+            server: 'mqtt://localhost:1883',
+        },
+        serial: {},
+        advanced: {
+            log_level: defaults.advanced!.log_level,
+            channel: defaults.advanced!.channel,
+            network_key: 'GENERATE',
+            pan_id: 'GENERATE',
+            ext_pan_id: 'GENERATE',
+        },
+        frontend: {
+            enabled: defaults.frontend!.enabled,
+            port: defaults.frontend!.port,
+        },
+        homeassistant: {
+            enabled: defaults.homeassistant!.enabled,
+        },
+    } as Partial<Settings>;
+
+    applyEnvironmentVariables(minimal);
+    yaml.writeIfChanged(CONFIG_FILE_PATH, minimal);
+
+    _settings = read();
+
+    loadSettingsWithDefaults();
+}
+
+export function write(): void {
     const settings = getPersistedSettings();
     const toWrite: KeyValue = objectAssignDeep({}, settings);
 
@@ -152,18 +185,18 @@ function write(): void {
     const actual = yaml.read(CONFIG_FILE_PATH);
 
     // In case the setting is defined in a separate file (e.g. !secret network_key) update it there.
-    for (const path of [
+    for (const [ns, key] of [
         ['mqtt', 'server'],
         ['mqtt', 'user'],
         ['mqtt', 'password'],
         ['advanced', 'network_key'],
         ['frontend', 'auth_token'],
     ]) {
-        if (actual[path[0]] && actual[path[0]][path[1]]) {
-            const ref = parseValueRef(actual[path[0]][path[1]]);
+        if (actual[ns] && actual[ns][key]) {
+            const ref = parseValueRef(actual[ns][key]);
             if (ref) {
-                yaml.updateIfChanged(data.joinPath(ref.filename), ref.key, toWrite[path[0]][path[1]]);
-                toWrite[path[0]][path[1]] = actual[path[0]][path[1]];
+                yaml.updateIfChanged(data.joinPath(ref.filename), ref.key, toWrite[ns][key]);
+                toWrite[ns][key] = actual[ns][key];
             }
         }
     }
@@ -191,6 +224,9 @@ function write(): void {
 
     writeDevicesOrGroups('devices');
     writeDevicesOrGroups('groups');
+
+    applyEnvironmentVariables(toWrite);
+
     yaml.writeIfChanged(CONFIG_FILE_PATH, toWrite);
 
     _settings = read();
@@ -275,7 +311,6 @@ export function validate(): string[] {
 
 function read(): Partial<Settings> {
     const s = yaml.read(CONFIG_FILE_PATH) as Partial<Settings>;
-    applyEnvironmentVariables(s);
 
     // Read !secret MQTT username and password if set
     const interpretValue = <T>(value: T): T => {

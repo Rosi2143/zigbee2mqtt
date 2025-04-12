@@ -1,6 +1,8 @@
-import type {Zigbee2MQTTAPI, Zigbee2MQTTResponse, Zigbee2MQTTResponseEndpoints, Zigbee2MQTTScene} from 'lib/types/api';
 import type * as zhc from 'zigbee-herdsman-converters';
 
+import type {Zigbee2MQTTAPI, Zigbee2MQTTResponse, Zigbee2MQTTResponseEndpoints, Zigbee2MQTTScene} from '../types/api';
+
+import {exec} from 'child_process';
 import assert from 'node:assert';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -49,33 +51,27 @@ function capitalize(s: string): string {
     return s[0].toUpperCase() + s.slice(1);
 }
 
-async function getZigbee2MQTTVersion(includeCommitHash = true): Promise<{commitHash?: string; version: string}> {
-    const git = await import('git-last-commit');
-    const packageJSON = await import('../..' + '/package.json');
+export async function getZigbee2MQTTVersion(includeCommitHash = true): Promise<{commitHash?: string; version: string}> {
+    const packageJSON = (await import('../../package.json', {with: {type: 'json'}})).default;
+    const version = packageJSON.version;
+    let commitHash: string | undefined;
 
     if (!includeCommitHash) {
-        return {version: packageJSON.version, commitHash: undefined};
+        return {version, commitHash};
     }
 
     return await new Promise((resolve) => {
-        const version = packageJSON.version;
+        exec('git rev-parse --short=8 HEAD', (error, stdout) => {
+            commitHash = stdout.trim();
 
-        git.getLastCommit((err: Error, commit: {shortHash: string}) => {
-            let commitHash = undefined;
-
-            if (err) {
+            if (error || commitHash === '') {
                 try {
                     commitHash = fs.readFileSync(path.join(__dirname, '..', '..', 'dist', '.hash'), 'utf-8');
-                    /* v8 ignore start */
                 } catch {
                     commitHash = 'unknown';
                 }
-                /* v8 ignore stop */
-            } else {
-                commitHash = commit.shortHash;
             }
 
-            commitHash = commitHash.trim();
             resolve({commitHash, version});
         });
     });

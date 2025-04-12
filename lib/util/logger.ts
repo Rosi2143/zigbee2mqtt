@@ -56,13 +56,15 @@ class Logger {
         this.logger.add(
             new winston.transports.Console({
                 silent: consoleSilenced,
-                // winston.config.syslog.levels sets 'warning' as 'red'
-                format: winston.format.combine(
-                    winston.format.colorize({colors: {debug: 'blue', info: 'green', warning: 'yellow', error: 'red'}}),
-                    winston.format.printf((info) => {
-                        return `[${info.timestamp}] ${info.level}: \t${info.message}`;
-                    }),
-                ),
+                format: settings.get().advanced.log_console_json
+                    ? winston.format.json()
+                    : winston.format.combine(
+                          // winston.config.syslog.levels sets 'warning' as 'red'
+                          winston.format.colorize({colors: {debug: 'blue', info: 'green', warning: 'yellow', error: 'red'}}),
+                          winston.format.printf((info) => {
+                              return `[${info.timestamp}] ${info.level}: \t${info.message}`;
+                          }),
+                      ),
             }),
         );
 
@@ -230,7 +232,7 @@ class Logger {
             });
 
             directories.sort((a: KeyValue, b: KeyValue) => b.birth - a.birth);
-            directories = directories.slice(10, directories.length);
+            directories = directories.slice(settings.get().advanced.log_directories_to_keep, directories.length);
             directories.forEach((dir) => {
                 this.debug(`Removing old log directory '${dir.path}'`);
                 rimrafSync(dir.path);
@@ -242,12 +244,11 @@ class Logger {
     // https://github.com/Koenkk/zigbee2mqtt/pull/10905
     /* v8 ignore start */
     public async end(): Promise<void> {
-        this.logger.end();
-
-        await new Promise<void>((resolve) => {
-            if (!this.fileTransport) {
-                process.nextTick(resolve);
-            } else {
+        // Only flush the file transport, don't end logger itself as log() might still be called
+        // causing a UnhandledPromiseRejection (`Error: write after end`). Flushing the file transport
+        // ensures the log files are written before stopping.
+        if (this.fileTransport) {
+            await new Promise<void>((resolve) => {
                 // @ts-expect-error workaround
                 if (this.fileTransport._dest) {
                     // @ts-expect-error workaround
@@ -256,8 +257,9 @@ class Logger {
                     // @ts-expect-error workaround
                     this.fileTransport.on('open', () => this.fileTransport._dest.on('finish', resolve));
                 }
-            }
-        });
+                this.fileTransport.end();
+            });
+        }
     }
     /* v8 ignore stop */
 }
