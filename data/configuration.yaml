@@ -49,7 +49,7 @@ advanced:
     - 101
   log_level: info
   timestamp_format: YYYY-MM-DD HH:mm:ss
-  log_directory: /media/EAD1-0E0A/zigbee2mqtt/log/%TIMESTAMP%
+  log_directory: /app/data/log/%TIMESTAMP%
   log_file: log.txt
   log_rotation: true
   log_output:
