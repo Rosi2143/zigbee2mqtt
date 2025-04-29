@@ -1,0 +1,21 @@
+[Unit]
+Description=Zigbee2MQTT Container
+After=docker.service mosquitto.service
+Requires=docker.service mosquitto.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+TimeoutStartSec=0
+#Restart=always
+ExecStartPre=-/usr/bin/docker stop zigbee2mqtt
+ExecStartPre=-/usr/bin/docker rm zigbee2mqtt
+ExecStartPre=/usr/bin/docker compose pull zigbee2mqtt
+ExecStart=/usr/bin/docker compose -f /home/pi/git/zigbee2mqtt/docker-compose.yml up -d zigbee2mqtt
+ExecStop=/usr/bin/docker compose down zigbee2mqtt
+WorkingDirectory=/home/pi/git/zigbee2mqtt
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

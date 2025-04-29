@@ -1,7 +1,9 @@
 '0xbc33acfffe27ccf2':
   friendly_name: IKEA/Bewegungsmelder/Buero
+  occupancy_timeout: 600
 '0x0c4314fffef8c1e9':
   friendly_name: IKEA/Bewegungsmelder/Gaestezimmer
+  occupancy_timeout: 600
 '0xbc33acfffea786d4':
   friendly_name: IKEA/Bewegungsmelder/Abstellraum
   occupancy_timeout: 600
@@ -10,6 +12,7 @@
   occupancy_timeout: 600
 '0x847127fffed29a06':
   friendly_name: IKEA/Bewegungsmelder/Werkstatt
+  occupancy_timeout: 600
 '0x04cd15fffe2d3b4e':
   friendly_name: IKEA/Fernbedienung/Schlafzimmer
 '0x000d6ffffe4b1c65':
@@ -92,3 +95,7 @@
   friendly_name: Tuya/Soil/VI
   temperature_precision: 1
   illuminance_raw: true
+'0xa4c138c43f58d066':
+  friendly_name: Tuya/Bewegungsmelder/I
+'0xa4c138e87d672181':
+  friendly_name: Tuya/Bewegungsmelder/II

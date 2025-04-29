@@ -2,7 +2,7 @@ homeassistant:
   enabled: false
 frontend:
   enabled: true
-  port: 8081
+  port: 8080
 availability:
   enabled: true
   active:
@@ -25,10 +25,10 @@ map_options:
         inactive: '#994444'
 mqtt:
   base_topic: zigbee2mqtt
-  server: mqtt://localhost:1883
+  server: mqtt://172.17.0.1
 serial:
-  adapter: zstack
-  port: /dev/ttyACM0
+  adapter: ember
+  port: /dev/ttyUSB0
 advanced:
   network_key:
     - 174
@@ -47,7 +47,7 @@ advanced:
     - 221
     - 239
     - 101
-  log_level: info
+  log_level: debug
   timestamp_format: YYYY-MM-DD HH:mm:ss
   log_directory: /app/data/log/%TIMESTAMP%
   log_file: log.txt
