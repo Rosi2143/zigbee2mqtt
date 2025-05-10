@@ -1,9 +1,4 @@
-# https://www.zigbee2mqtt.io/guide/configuration/devices-groups.html#groups
 '1':
   friendly_name: IKEA/Lampe/Terrasse_Pergola_Alle
-  retain: false
-  transition: 2
-  optimistic: false
-  devices:
-    - IKEA/Lampe/Terrasse_Pergola_Links
-    - IKEA/Lampe/Terrasse_Pergola_Rechts
+'2':
+  friendly_name: Livarno/AussenStrahler/Alle
