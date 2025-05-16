@@ -96,6 +96,6 @@
   temperature_precision: 1
   illuminance_raw: true
 '0xa4c138c43f58d066':
-  friendly_name: Tuya/Bewegungsmelder/I
-'0xa4c138e87d672181':
   friendly_name: Tuya/Bewegungsmelder/II
+'0xa4c138e87d672181':
+  friendly_name: Tuya/Bewegungsmelder/I
