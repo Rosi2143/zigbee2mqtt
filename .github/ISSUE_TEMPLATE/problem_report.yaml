@@ -6,8 +6,8 @@ body:
       attributes:
           value: |
               **IMPORTANT:** Before submitting:
-              - Zigbee2MQTT fails to start? Read [this](https://www.zigbee2mqtt.io/guide/installation/20_zigbee2mqtt-fails-to-start.html)
-                - Raspberry Pi users? Make sure to check [this]((https://www.zigbee2mqtt.io/guide/installation/20_zigbee2mqtt-fails-to-start_crashes-runtime.html#raspberry-pi-users-use-a-good-power-supply))
+              - Zigbee2MQTT fails to start? Read [this](https://www.zigbee2mqtt.io/guide/installation/20_zigbee2mqtt-fails-to-start_crashes-runtime.html)
+              - Raspberry Pi users? Make sure to check [this](https://www.zigbee2mqtt.io/guide/installation/20_zigbee2mqtt-fails-to-start_crashes-runtime.html#raspberry-pi-users-use-a-good-power-supply)
               - You read the [FAQ](https://www.zigbee2mqtt.io/guide/faq/)
               - Are you using an EZSP adapter (e.g. Dongle-E/SkyConnect)? Try the [new driver](https://github.com/Koenkk/zigbee2mqtt/discussions/21462) 
               - Make sure the bug also occurs in the [dev branch](https://www.zigbee2mqtt.io/advanced/more/switch-to-dev-branch.html)
@@ -69,11 +69,25 @@ body:
           placeholder: Add-on on Home Assistant OS on Intel NUC, Plain on Docker container, ...
       validations:
           required: true
+    - type: input
+      id: device
+      attributes:
+          label: Device `database.db` entry
+          description: If the problem is related to a specific device, paste the `database.db` entry here
+          placeholder: '{"id":117,"type":"EndDevice","ieeeAddr":"0x00158d0001d8e1d2","nwkAddr":25887 ...'
     - type: textarea
       id: log
       attributes:
           label: Debug log
           description: After enabling [debug logging](https://www.zigbee2mqtt.io/guide/configuration/logging.html#debugging) the log can be found under `data/log`. Attach the file below
           placeholder: Click here and drag the file into it or click on "Attach files by.." below
+      validations:
+          required: false
+    - type: textarea
+      id: notes
+      attributes:
+          label: Notes
+          description: Any additional information or context that might be helpful
+          placeholder: Add any relevant notes or context here
       validations:
           required: false

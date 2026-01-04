@@ -1,6 +1,7 @@
-import utils from '../../lib/util/utils';
+import {vi} from "vitest";
+import utils from "../../lib/util/utils";
 
-const spy = vi.spyOn(utils, 'sleep');
+const spy = vi.spyOn(utils, "sleep");
 
 export function mock(): void {
     spy.mockImplementation(vi.fn());

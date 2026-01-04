@@ -20,9 +20,9 @@ jobs:
               with:
                   version: 9
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v6
               with:
-                  node-version: 22
+                  node-version: 24
 
             - uses: googleapis/release-please-action@v4
               id: release
@@ -31,18 +31,18 @@ jobs:
                   token: ${{secrets.GH_TOKEN}}
 
             # Checkout repos
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
               with:
                   repository: koenkk/zigbee2mqtt
                   path: ./z2m
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
               with:
                   repository: koenkk/zigbee2mqtt
                   path: ./z2m-master
                   ref: master
 
             - name: Restore cache commit-user-lookup.json
-              uses: actions/cache/restore@v4
+              uses: actions/cache/restore@v5
               with:
                   path: z2m/scripts/commit-user-lookup.json
                   key: commit-user-lookup-dummy
@@ -54,10 +54,11 @@ jobs:
                   MASTER_ZHC_VERSION=$(cat z2m-master/package.json | jq -r '.dependencies."zigbee-herdsman-converters"')
                   MASTER_ZH_VERSION=$(cat z2m-master/package.json | jq -r '.dependencies."zigbee-herdsman"')
                   MASTER_FRONTEND_VERSION=$(cat z2m-master/package.json | jq -r '.dependencies."zigbee2mqtt-frontend"')
+                  MASTER_WINDFRONT_VERSION=$(cat z2m-master/package.json | jq -r '.dependencies."zigbee2mqtt-windfront"')
                   wget -q -O - https://raw.githubusercontent.com/Koenkk/zigbee2mqtt/release-please--branches--dev--components--zigbee2mqtt/CHANGELOG.md > z2m/CHANGELOG.md
                   cd z2m
                   pnpm i --frozen-lockfile
-                  node scripts/generateChangelog.js $MASTER_Z2M_VERSION $MASTER_ZHC_VERSION $MASTER_ZH_VERSION $MASTER_FRONTEND_VERSION >> ../changelog.md
+                  node scripts/generateChangelog.mjs $MASTER_Z2M_VERSION $MASTER_ZHC_VERSION $MASTER_ZH_VERSION $MASTER_FRONTEND_VERSION $MASTER_WINDFRONT_VERSION >> ../changelog.md
               env:
                   GH_TOKEN: ${{secrets.GH_TOKEN}}
             - name: Update changelog gist
@@ -66,7 +67,7 @@ jobs:
               env:
                   GH_TOKEN: ${{secrets.GH_TOKEN}}
             - name: Save cache commit-user-lookup.json
-              uses: actions/cache/save@v4
+              uses: actions/cache/save@v5
               if: always()
               with:
                   path: z2m/scripts/commit-user-lookup.json

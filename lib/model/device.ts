@@ -1,17 +1,17 @@
-import assert from 'node:assert';
+import assert from "node:assert";
+import {InterviewState} from "zigbee-herdsman/dist/controller/model/device";
+import type {CustomClusters} from "zigbee-herdsman/dist/zspec/zcl/definition/tstype";
+import * as zhc from "zigbee-herdsman-converters";
+import {access, Numeric} from "zigbee-herdsman-converters";
 
-import * as zhc from 'zigbee-herdsman-converters';
-import {access, Numeric} from 'zigbee-herdsman-converters';
-import {CustomClusters} from 'zigbee-herdsman/dist/zspec/zcl/definition/tstype';
+import * as settings from "../util/settings";
 
-import * as settings from '../util/settings';
-
-const LINKQUALITY = new Numeric('linkquality', access.STATE)
-    .withUnit('lqi')
-    .withDescription('Link quality (signal strength)')
+const LINKQUALITY = new Numeric("linkquality", access.STATE)
+    .withUnit("lqi")
+    .withDescription("Link quality (signal strength)")
     .withValueMin(0)
     .withValueMax(255)
-    .withCategory('diagnostic');
+    .withCategory("diagnostic");
 
 export default class Device {
     public zh: zh.Device;
@@ -21,6 +21,7 @@ export default class Device {
     get ieeeAddr(): string {
         return this.zh.ieeeAddr;
     }
+    // biome-ignore lint/style/useNamingConvention: API
     get ID(): string {
         return this.zh.ieeeAddr;
     }
@@ -29,16 +30,19 @@ export default class Device {
         return {...settings.get().device_options, ...deviceOptions};
     }
     get name(): string {
-        return this.zh.type === 'Coordinator' ? 'Coordinator' : this.options?.friendly_name;
+        return this.zh.type === "Coordinator" ? "Coordinator" : this.options?.friendly_name;
     }
     get isSupported(): boolean {
-        return this.zh.type === 'Coordinator' || Boolean(this.definition && !this.definition.generated);
+        return this.zh.type === "Coordinator" || Boolean(this.definition && !this.definition.generated);
     }
     get customClusters(): CustomClusters {
         return this.zh.customClusters;
     }
     get otaExtraMetas(): zhc.Ota.ExtraMetas {
-        return typeof this.definition?.ota === 'object' ? this.definition.ota : {};
+        return typeof this.definition?.ota === "object" ? this.definition.ota : {};
+    }
+    get interviewed(): boolean {
+        return this.zh.interviewState === InterviewState.Successful || this.zh.interviewState === InterviewState.Failed;
     }
 
     constructor(device: zh.Device) {
@@ -47,8 +51,8 @@ export default class Device {
 
     exposes(): zhc.Expose[] {
         const exposes: zhc.Expose[] = [];
-        assert(this.definition, 'Cannot retreive exposes before definition is resolved');
-        if (typeof this.definition.exposes == 'function') {
+        assert(this.definition, "Cannot retreive exposes before definition is resolved");
+        if (typeof this.definition.exposes === "function") {
             const options: KeyValue = this.options;
             exposes.push(...this.definition.exposes(this.zh, options));
         } else {
@@ -58,71 +62,63 @@ export default class Device {
         return exposes;
     }
 
-    async resolveDefinition(ignoreCache: boolean = false): Promise<void> {
-        if (!this.zh.interviewing && (!this.definition || this._definitionModelID !== this.zh.modelID || ignoreCache)) {
+    async resolveDefinition(ignoreCache = false): Promise<void> {
+        if (this.interviewed && (!this.definition || this._definitionModelID !== this.zh.modelID || ignoreCache)) {
             this.definition = await zhc.findByDevice(this.zh, true);
             this._definitionModelID = this.zh.modelID;
         }
     }
 
     ensureInSettings(): void {
-        if (this.zh.type !== 'Coordinator' && !settings.getDevice(this.zh.ieeeAddr)) {
+        if (this.zh.type !== "Coordinator" && !settings.getDevice(this.zh.ieeeAddr)) {
             settings.addDevice(this.zh.ieeeAddr);
         }
     }
 
     endpoint(key?: string | number): zh.Endpoint | undefined {
-        let endpoint: zh.Endpoint | undefined;
-
-        if (key == null || key == '') {
-            key = 'default';
+        if (!key) {
+            key = "default";
+        } else if (!Number.isNaN(Number(key))) {
+            return this.zh.getEndpoint(Number(key));
         }
 
-        if (!isNaN(Number(key))) {
-            endpoint = this.zh.getEndpoint(Number(key));
-        } else if (this.definition?.endpoint) {
-            const ID = this.definition?.endpoint?.(this.zh)[key];
+        if (this.definition?.endpoint) {
+            const ID = this.definition.endpoint(this.zh)[key];
 
             if (ID) {
-                endpoint = this.zh.getEndpoint(ID);
-            } else if (key === 'default') {
-                endpoint = this.zh.endpoints[0];
-            } else {
-                return undefined;
+                return this.zh.getEndpoint(ID);
             }
-        } else {
-            if (key !== 'default') {
-                return undefined;
-            }
-
-            endpoint = this.zh.endpoints[0];
         }
 
-        return endpoint;
+        return key === "default" ? this.zh.endpoints[0] : undefined;
     }
 
     endpointName(endpoint: zh.Endpoint): string | undefined {
-        let epName = undefined;
+        let epName: string | undefined;
 
         if (this.definition?.endpoint) {
-            const mapping = this.definition?.endpoint(this.zh);
-            for (const [name, id] of Object.entries(mapping)) {
-                if (id == endpoint.ID) {
+            const mapping = this.definition.endpoint(this.zh);
+
+            for (const name in mapping) {
+                if (mapping[name] === endpoint.ID) {
                     epName = name;
+                    break;
                 }
             }
         }
 
         /* v8 ignore next */
-        return epName === 'default' ? undefined : epName;
+        return epName === "default" ? undefined : epName;
     }
 
     getEndpointNames(): string[] {
         const names: string[] = [];
 
-        for (const name in this.definition?.endpoint?.(this.zh) ?? {}) {
-            if (name !== 'default') {
-                names.push(name);
+        if (this.definition?.endpoint) {
+            for (const name in this.definition.endpoint(this.zh)) {
+                if (name !== "default") {
+                    names.push(name);
+                }
             }
         }
 

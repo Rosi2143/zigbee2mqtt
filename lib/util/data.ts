@@ -1,7 +1,7 @@
-import path from 'node:path';
+import path from "node:path";
 
 function setPath(): string {
-    return process.env.ZIGBEE2MQTT_DATA ? process.env.ZIGBEE2MQTT_DATA : path.normalize(path.join(__dirname, '..', '..', 'data'));
+    return process.env.ZIGBEE2MQTT_DATA ? process.env.ZIGBEE2MQTT_DATA : path.normalize(path.join(__dirname, "..", "..", "data"));
 }
 
 let dataPath = setPath();
@@ -18,4 +18,5 @@ function _testReload(): void {
     dataPath = setPath();
 }
 
+// biome-ignore lint/style/useNamingConvention: test
 export default {joinPath, getPath, _testReload};
